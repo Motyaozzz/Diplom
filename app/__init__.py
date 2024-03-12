@@ -1,4 +1,6 @@
+import colorsys
 import imp
+from turtle import color
 from customtkinter import *
 from CTkMenuBar import *
 from CTkMessagebox import *
@@ -40,9 +42,6 @@ class App():
       update_button = CTkButton(
          self.bottom_frame, text="Обновить", command=self.__update_drives)
       update_button.pack(side=RIGHT, padx=5)
-
-      method_label = CTkLabel(master=self.bottom_frame, text="Метод: ")
-      method_label.pack(padx=5, side=RIGHT)
 
       self.bottom_frame.pack(side=BOTTOM, fill=BOTH, padx=5, pady=5)
       
@@ -115,6 +114,17 @@ class App():
             drive.index, drive.name, drive.disk_type, #self.__human_size(drive.capacity),
             drive.serial_num))
       self.selected = None
+
+   def __sort(self, col, reverse):
+      # получаем все значения столбцов в виде отдельного списка
+      l = [(self.drive_tree.set(k, col), k) for k in self.drive_tree.get_children("")]
+      # сортируем список
+      l.sort(reverse=reverse)
+      # переупорядочиваем значения в отсортированном порядке
+      for index,  (_, k) in enumerate(l):
+         self.drive_tree.move(k, "", index)
+      # в следующий раз выполняем сортировку в обратном порядке
+      self.drive_tree.heading(col, command=lambda: self.__sort(col, not reverse))
       
    def __drive_selected(self, event):
       for selected_item in self.drive_tree.selection():
