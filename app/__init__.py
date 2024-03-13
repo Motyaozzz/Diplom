@@ -2,17 +2,28 @@ import colorsys
 import imp
 from operator import index
 from turtle import color
+
 from customtkinter import *
 from CTkMenuBar import *
 from CTkMessagebox import *
 from tkinter import ttk
+
 import platform
 from typing import List
+
+import cv2
+import qrcode
 
 from app.disks import *
 from app.dataBase import Database
 
 class App():
+   
+   drives: List[Drive] = []
+
+   selected = None
+
+   drive_tree = None   
    
    
    def __init__(self):
@@ -56,6 +67,14 @@ class App():
       update_button = CTkButton(
          self.bottom_frame, text="Добавить в таблицу", command=self.__insert_data)
       update_button.pack(side=RIGHT, padx=5)
+      
+      update_button = CTkButton(
+         self.bottom_frame, text="Cоздать QR-код", command=self.__qrcode_make)
+      update_button.pack(side=RIGHT, padx=5)
+      
+      update_button = CTkButton(
+         self.bottom_frame, text="Проверить QR-код", command=self.__qrcode_check)
+      update_button.pack(side=RIGHT, padx=5)      
 
       self.bottom_frame.pack(side=BOTTOM, fill=BOTH, padx=5, pady=5)
       
@@ -168,11 +187,42 @@ class App():
       db=Database('example.db')
       if self.selected is None:
          self.__show_warning("Выберете носитель информации, который хотите добавить в БД")
+         #Проверяем, есть ли в базе носитель с таким серийником
       elif db.check(self.selected[4]):
          self.__show_warning("Данный носитель информации уже есть в таблице")
       else:
+         #Загружаем носители и заносим в базу имя и серийник выбранного носителя
          self.__load_drives()
          for drive in self.drives:
             if self.selected[0] == drive.index:
                db.insert_data(drive.name, drive.serial_num)
          self.selected = None
+         
+   def __qrcode_make(self):
+      db=Database('example.db')
+      if self.selected is None:
+         self.__show_warning("Выберете носитель информации, для которого необходимо создать QR-код")
+      else:
+         self.__load_drives()
+         for drive in self.drives:
+            if self.selected[0] == drive.index:
+               qrcode_img = qrcode.make(drive.serial_num)
+      
+      qrcode_name = self.selected[1]+".png"
+      qrcode_img.save(qrcode_name)
+      self.selected = None
+      
+      
+   def __qrcode_check(self):
+      db=Database('example.db')
+      if self.selected is None:
+         self.__show_warning("Выберете носитель информации, для которого необходимо создать QR-код")
+      else:
+         self.__load_drives()
+         for drive in self.drives:
+            if self.selected[0] == drive.index:
+               qr_name = drive.name+".png"
+         img = cv2.imread(qr_name)
+         detect = cv2.QRCodeDetector()
+         value, _, _ = detect.detectAndDecode(img)
+         print (value)
