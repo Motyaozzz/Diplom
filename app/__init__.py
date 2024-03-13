@@ -1,5 +1,6 @@
 import colorsys
 import imp
+from operator import index
 from turtle import color
 from customtkinter import *
 from CTkMenuBar import *
@@ -9,8 +10,11 @@ import platform
 from typing import List
 
 from app.disks import *
+from app.dataBase import Database
 
 class App():
+   
+   
    def __init__(self):
       set_default_color_theme("dark-blue")
       set_appearance_mode("dark")
@@ -23,6 +27,8 @@ class App():
       self.__init_table()
       self.__update_drives()
       self.tk.mainloop()
+      
+      
    def __menu(self):
       bg_color = self.tk._apply_appearance_mode(ThemeManager.theme["CTkFrame"]["fg_color"])
 
@@ -42,11 +48,21 @@ class App():
       update_button = CTkButton(
          self.bottom_frame, text="Обновить", command=self.__update_drives)
       update_button.pack(side=RIGHT, padx=5)
+      
+      update_button = CTkButton(
+         self.bottom_frame, text="Полная информация о USB", command=self.__update_drives)
+      update_button.pack(side=RIGHT, padx=5)
+
+      update_button = CTkButton(
+         self.bottom_frame, text="Добавить в таблицу", command=self.__insert_data)
+      update_button.pack(side=RIGHT, padx=5)
 
       self.bottom_frame.pack(side=BOTTOM, fill=BOTH, padx=5, pady=5)
       
+      
    def __about(self):
       CTkMessagebox(title="О программе", message="Программа учета машинных носителей информации\n(c) Муханов М.Э., Россия, 2024г.")
+
 
    def __load_drives(self):
       self.OS_TYPE = platform.system()
@@ -106,14 +122,17 @@ class App():
 
       self.drive_tree.bind("<<TreeviewSelect>>", self.__drive_selected)
 
+
+
    def __update_drives(self):
       self.drive_tree.delete(*self.drive_tree.get_children())
       self.__load_drives()
       for drive in self.drives:
          self.drive_tree.insert("", END, values=(
-            drive.index, drive.name, drive.disk_type, #self.__human_size(drive.capacity),
-            drive.serial_num))
+            drive.index, drive.name, drive.disk_type, self.__human_size(drive.capacity), drive.serial_num))
       self.selected = None
+
+
 
    def __sort(self, col, reverse):
       # получаем все значения столбцов в виде отдельного списка
@@ -126,7 +145,34 @@ class App():
       # в следующий раз выполняем сортировку в обратном порядке
       self.drive_tree.heading(col, command=lambda: self.__sort(col, not reverse))
       
+      
+   def __human_size(self, size):
+      units = ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ', 'ПБ']
+      for unit in units:
+         if size < 1024:
+               return f"{size:.1f} {unit}"
+         size /= 1024
+      
+      
    def __drive_selected(self, event):
       for selected_item in self.drive_tree.selection():
          item = self.drive_tree.item(selected_item)
          self.selected = item["values"]
+         
+         
+   def __show_warning(self, text):
+      CTkMessagebox(title="Ошибка", message=text)
+         
+         
+   def __insert_data(self):
+      db=Database('example.db')
+      if self.selected is None:
+         self.__show_warning("Выберете носитель информации, который хотите добавить в БД")
+      elif db.check(self.selected[4]):
+         self.__show_warning("Данный носитель информации уже есть в таблице")
+      else:
+         self.__load_drives()
+         for drive in self.drives:
+            if self.selected[0] == drive.index:
+               db.insert_data(drive.name, drive.serial_num)
+         self.selected = None
