@@ -16,6 +16,7 @@ import qrcode
 
 from app.disks import *
 from app.dataBase import Database
+from app.usb_eject import *
 
 class App():
    
@@ -29,6 +30,7 @@ class App():
    def __init__(self):
       set_default_color_theme("dark-blue")
       set_appearance_mode("dark")
+      
       
       self.tk = CTk()
       self.tk.title("Device monitoring")
