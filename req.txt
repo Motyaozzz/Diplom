@@ -10,6 +10,7 @@ opencv-python==4.9.0.80
 packaging==24.0
 pillow==10.2.0
 pycparser==2.21
+pygost==5.13
 pypng==0.20220715.0
 pywin32==306
 qrcode==7.4.2

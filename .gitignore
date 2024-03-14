@@ -1,0 +1,4 @@
+./venv/
+./img/
+./example.db/
+./app/__pycache__/
