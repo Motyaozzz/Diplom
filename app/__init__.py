@@ -2,6 +2,7 @@ import colorsys
 import imp
 from operator import index
 from turtle import color
+from pygost.gost34112012 import GOST34112012
 
 from customtkinter import *
 from CTkMenuBar import *
@@ -197,8 +198,9 @@ class App():
          self.__load_drives()
          for drive in self.drives:
             if self.selected[0] == drive.index:
+               m = GOST34112012(drive.serial_num, digest_size=256)
+               print(m.hexdigest())
                db.insert_data(drive.name, drive.serial_num)
-         self.selected = None
          
    def __qrcode_make(self):
       db=Database('example.db')
@@ -211,8 +213,7 @@ class App():
                qrcode_img = qrcode.make(drive.serial_num)
       
       qrcode_name = self.selected[1]+".png"
-      qrcode_img.save(qrcode_name)
-      self.selected = None
+      qrcode_img.save("./img/" + qrcode_name)
       
       
    def __qrcode_check(self):
@@ -223,8 +224,9 @@ class App():
          self.__load_drives()
          for drive in self.drives:
             if self.selected[0] == drive.index:
-               qr_name = drive.name+".png"
+               qr_name = "./img/"+ drive.name + ".png"
          img = cv2.imread(qr_name)
          detect = cv2.QRCodeDetector()
          value, _, _ = detect.detectAndDecode(img)
          print (value)
+         

@@ -1,0 +1,43 @@
+Download
+********
+
+No additional dependencies except Python 2.7/3.x interpreter are
+required.
+
+   Preferable way is to download tarball with the signature:
+
+     $ [fetch|wget] http://www.pygost.cypherpunks.ru/pygost-5.13.tar.zst
+     $ [fetch|wget] http://www.pygost.cypherpunks.ru/pygost-5.13.tar.zst.{asc,sig}
+     [verify signature]
+     $ zstd -d < pygost-5.13.tar.zst | tar xf -
+     $ cd pygost-5.13
+     $ python setup.py install
+
+   You can obtain releases source code prepared tarballs on
+<http://www.pygost.cypherpunks.ru/>.  You *have to* verify downloaded
+tarballs authenticity to be sure that you retrieved trusted and
+untampered software.  There are two options:
+
+OpenPGP (https://www.openpgp.org/) '.asc' signature
+     Use GNU Privacy Guard (https://www.gnupg.org/) free software
+     implementation.  For the very first time it is necessary to get
+     signing public key and import it.  It is provided here
+     (PUBKEY-PGP.asc), but you should check alternate resources.
+
+     pub   rsa2048/0xE6FD1269CD0C009E 2016-09-13
+           F55A 7619 3A0C 323A A031  0E6B E6FD 1269 CD0C 009E
+     uid   PyGOST releases <pygost at cypherpunks dot ru>
+
+          $ gpg --auto-key-locate dane --locate-keys pygost at cypherpunks dot ru
+          $ gpg --auto-key-locate  wkd --locate-keys pygost at cypherpunks dot ru
+
+OpenSSH (https://www.openssh.com/) '.sig' signature
+     Public key (PUBKEY-SSH.pub) and its OpenPGP signature
+     (PUBKEY-SSH.pub.asc) made with the key above.  Its fingerprint:
+     'SHA256:/Z3T/T2sXaaunefAL6tz3ZykHTDYIMh5TLd9Hh9mxlU'.
+
+          $ ssh-keygen -Y verify -f PUBKEY-SSH.pub -I pygost@cypherpunks.ru -n file \
+              -s pygost-5.13.tar.zst.sig < pygost-5.13.tar.zst
+
+   You can obtain development source code with 'git clone
+git://git.cypherpunks.ru/pygost.git'.
