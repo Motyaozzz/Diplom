@@ -1,15 +1,17 @@
 import colorsys
 import imp
 from operator import index
+import tkinter
 from turtle import color
 from pygost.gost34112012 import GOST34112012
 import ctypes
 import sys
+import psutil
 
 from customtkinter import *
 from CTkMenuBar import *
 from CTkMessagebox import *
-from tkinter import ttk
+from tkinter import Tk, ttk
 
 import platform
 from typing import List
@@ -30,11 +32,16 @@ class App():
    drive_tree = None   
    
    
-   def __init__(self, is_admin=False):
+   def __init__(self):
       set_default_color_theme("dark-blue")
       set_appearance_mode("dark")
       
+      if ctypes.windll.shell32.IsUserAnAdmin():
+         is_admin = True
+      else: 
+         is_admin = False
       self.is_admin=is_admin
+      
       self.tk = CTk()
       self.tk.title("Device monitoring")
       self.tk.geometry("800x300")
@@ -75,7 +82,7 @@ class App():
          update_button.pack(side=RIGHT, padx=5)
       else:
          update_button = CTkButton(
-            self.bottom_frame, text="Добавить в таблицу", command=self.__make_admin)
+            self.bottom_frame, text="Перейти адм.консоль", command=self.__make_admin)
          update_button.pack(side=RIGHT, padx=5)         
       
       update_button = CTkButton(
@@ -240,3 +247,5 @@ class App():
          
    def __make_admin(self):
       ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
+      self.tk.destroy()
+      App()
