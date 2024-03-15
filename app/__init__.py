@@ -3,6 +3,8 @@ import imp
 from operator import index
 from turtle import color
 from pygost.gost34112012 import GOST34112012
+import ctypes
+import sys
 
 from customtkinter import *
 from CTkMenuBar import *
@@ -28,11 +30,11 @@ class App():
    drive_tree = None   
    
    
-   def __init__(self):
+   def __init__(self, is_admin=False):
       set_default_color_theme("dark-blue")
       set_appearance_mode("dark")
       
-      
+      self.is_admin=is_admin
       self.tk = CTk()
       self.tk.title("Device monitoring")
       self.tk.geometry("800x300")
@@ -67,9 +69,14 @@ class App():
          self.bottom_frame, text="Полная информация о USB", command=self.__update_drives)
       update_button.pack(side=RIGHT, padx=5)
 
-      update_button = CTkButton(
-         self.bottom_frame, text="Добавить в таблицу", command=self.__insert_data)
-      update_button.pack(side=RIGHT, padx=5)
+      if self.is_admin:
+         update_button = CTkButton(
+            self.bottom_frame, text="Добавить в таблицу", command=self.__insert_data)
+         update_button.pack(side=RIGHT, padx=5)
+      else:
+         update_button = CTkButton(
+            self.bottom_frame, text="Добавить в таблицу", command=self.__make_admin)
+         update_button.pack(side=RIGHT, padx=5)         
       
       update_button = CTkButton(
          self.bottom_frame, text="Cоздать QR-код", command=self.__qrcode_make)
@@ -198,9 +205,10 @@ class App():
          self.__load_drives()
          for drive in self.drives:
             if self.selected[0] == drive.index:
-               m = GOST34112012(drive.serial_num, digest_size=256)
+               str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
+               m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
                print(m.hexdigest())
-               db.insert_data(drive.name, drive.serial_num)
+               db.insert_data(drive.name, m.hexdigest())
          
    def __qrcode_make(self):
       db=Database('example.db')
@@ -230,3 +238,5 @@ class App():
          value, _, _ = detect.detectAndDecode(img)
          print (value)
          
+   def __make_admin(self):
+      ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
