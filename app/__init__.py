@@ -40,8 +40,8 @@ class App():
          is_admin = True
       else: 
          is_admin = False
+         
       self.is_admin=is_admin
-      
       self.tk = CTk()
       self.tk.title("Device monitoring")
       self.tk.geometry("800x300")
@@ -205,17 +205,17 @@ class App():
       if self.selected is None:
          self.__show_warning("Выберете носитель информации, который хотите добавить в БД")
          #Проверяем, есть ли в базе носитель с таким серийником
-      elif db.check(self.selected[4]):
+      for drive in self.drives:
+         if self.selected[0] == drive.index:
+            str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
+            m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
+      if db.check(m.hexdigest()):
          self.__show_warning("Данный носитель информации уже есть в таблице")
       else:
          #Загружаем носители и заносим в базу имя и серийник выбранного носителя
-         self.__load_drives()
-         for drive in self.drives:
-            if self.selected[0] == drive.index:
-               str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
-               m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
-               print(m.hexdigest())
-               db.insert_data(drive.name, m.hexdigest())
+         db.insert_data(drive.name, m.hexdigest())
+      db.close_connection
+
          
    def __qrcode_make(self):
       db=Database('example.db')
@@ -244,8 +244,9 @@ class App():
          detect = cv2.QRCodeDetector()
          value, _, _ = detect.detectAndDecode(img)
          print (value)
-         
+
+
    def __make_admin(self):
-      ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
       self.tk.destroy()
-      App()
+      ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, "./main.py", None, 1)
+      exit()

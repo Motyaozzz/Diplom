@@ -10,16 +10,16 @@ class Database:
          CREATE TABLE IF NOT EXISTS items (
                id INTEGER PRIMARY KEY,
                name TEXT NOT NULL,
-               description TEXT
+               gost_hash TEXT
          )
       ''')
 
-   def insert_data(self, name, description):
-      self.cursor.execute('INSERT INTO items (name, description) VALUES (?, ?)', (name, description))
+   def insert_data(self, name, gost_hash):
+      self.cursor.execute('INSERT INTO items (name, gost_hash) VALUES (?, ?)', (name, gost_hash))
       self.conn.commit()
       
-   def check(self,user_id):
-         info=self.cursor.execute('SELECT * FROM items WHERE description = ?', (user_id, )).fetchone()
+   def check(self,gost_hash):
+         info=self.cursor.execute('SELECT * FROM items WHERE gost_hash = ?', (gost_hash, )).fetchone()
          if info is None:
             return
          if len(info) == 0: 
