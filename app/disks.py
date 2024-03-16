@@ -28,3 +28,4 @@ class Drive():
       self.capacity = capacity
       self.serial_num = dev_id
       self.index = index
+      
