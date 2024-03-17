@@ -232,7 +232,7 @@ class App():
                if db.check(m.hexdigest()):
                   qrcode_img = qrcode.make(drive.serial_num)
                   qrcode_name = self.selected[1]+".png"
-                  qrcode_path = filedialog.askdirectory()
+                  qrcode_path = filedialog.askdirectory()+"/"
                   qrcode_img.save(qrcode_path + qrcode_name)
                   CTkMessagebox(title="QR-код", message="QR-код создан и размещен по пути:\n" + qrcode_path)
                   # self.__show_warning("QR-код создан и размещен по пути:" + qrcode_path)
@@ -242,18 +242,16 @@ class App():
       
       
    def __qrcode_check(self):
-      for drive in self.drives:
-         if self.selected[4]==drive.serial_num:
-            qr_name = filedialog.askopenfilename()
-            img = cv2.imread(qr_name)
-            detect = cv2.QRCodeDetector()
-            value, _, _ = detect.detectAndDecode(img)
-            if value is not None:
-               CTkMessagebox(title="QR-код", message="Серийный номер: "+ value)
-               return
-            else:
-               self.__show_warning("QR-код для данного носителя отсутствует")
-               return
+      qr_name = filedialog.askopenfilename()
+      img = cv2.imread(qr_name)
+      detect = cv2.QRCodeDetector()
+      value, _, _ = detect.detectAndDecode(img)
+      if value is not None:
+         CTkMessagebox(title="QR-код", message="Серийный номер: "+ value)
+         return
+      else:
+         self.__show_warning("QR-код не читается")
+         return
       
 
    def __make_admin(self):
