@@ -11,10 +11,10 @@ import psutil
 from customtkinter import *
 from CTkMenuBar import *
 from CTkMessagebox import *
-from tkinter import Tk, ttk
+from tkinter import Tk, Toplevel, ttk
 
 import platform
-from typing import List
+from typing import List, Tuple
 
 import cv2
 import qrcode
@@ -159,6 +159,7 @@ class App():
       self.drive_tree.column("#5", stretch=YES, width=150, minwidth=100)
 
       self.drive_tree.bind("<<TreeviewSelect>>", self.__drive_selected)
+      self.drive_tree.bind("<Double-Button-1>", lambda event: self.__full_info())
 
    def __update_drives(self):
       self.drive_tree.delete(*self.drive_tree.get_children())
@@ -245,12 +246,13 @@ class App():
       
    def __qrcode_check(self):
       qr_name = filedialog.askopenfilename()
-      if qr_name !="" and qr_name=="*.png":
+      extensions = ['png', 'jpg', 'jpeg', 'svg']
+      qr_png = (qr_name.split('.'))[-1].lower()
+      if qr_name !="" and (qr_png in extensions):
          img = cv2.imread(qr_name)
          detect = cv2.QRCodeDetector()
          value, _, _ = detect.detectAndDecode(img)
          CTkMessagebox(title="QR-код", message="Серийный номер: "+ value)
-         return
       else: self.__show_warning("Неверный формат файла или файл не выбран")
 
    def __make_admin(self):
@@ -262,6 +264,33 @@ class App():
 
       
    def __full_info(self):
-      for drive in self.drives:
-            if self.selected[4] == drive.serial_num:
-               self.__show_warning("Все параметры")
+      if self.selected is None:
+         self.__show_warning("Выберите носитель информации")
+         return
+      else:
+         set_default_color_theme("dark-blue")
+         set_appearance_mode("dark")
+
+         window = CTkToplevel()      
+         
+         window.geometry("800x650")
+         window.minsize(800, 650)   
+         window.maxsize(800, 650)
+         window.title("Полная информация о носителе") 
+      
+         window.textbox = CTkTextbox(master=window, width=800, height=650, corner_radius=0, text_color='white', fg_color="#212121")
+         window.textbox.grid(row=0, column=0, sticky="nsew")
+         
+         import wmi
+         c=wmi.WMI()
+         if items := c.Win32_DiskDrive():
+            for item in items:  
+               if self.selected[4] == item.SerialNumber:
+                  item = str(item)
+                  start = item.find('{') + 1
+                  end = item.rfind('}')
+                  substring = item[start:end]
+
+                  window.textbox.insert("0.0", substring)
+
+         window.textbox.configure(state="disabled")
