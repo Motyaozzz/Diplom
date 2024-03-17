@@ -73,7 +73,7 @@ class App():
       update_button.pack(side=RIGHT, padx=5)
       
       update_button = CTkButton(
-         self.bottom_frame, text="Полная информация о USB", command=self.__update_drives)
+         self.bottom_frame, text="Полная информация о USB", command=self.__full_info)
       update_button.pack(side=RIGHT, padx=5)
 
       if self.is_admin:
@@ -93,7 +93,7 @@ class App():
          self.bottom_frame, text="Проверить QR-код", command=self.__qrcode_check)
       update_button.pack(side=RIGHT, padx=5)      
 
-      self.bottom_frame.pack(side=BOTTOM, fill=BOTH, padx=5, pady=5)
+      self.bottom_frame.pack(side=BOTTOM, fill=BOTH, padx=5, pady=5)      
       
       
    def __about(self):
@@ -158,8 +158,6 @@ class App():
 
       self.drive_tree.bind("<<TreeviewSelect>>", self.__drive_selected)
 
-
-
    def __update_drives(self):
       self.drive_tree.delete(*self.drive_tree.get_children())
       self.__load_drives()
@@ -204,16 +202,21 @@ class App():
       db=Database('example.db')
       if self.selected is None:
          self.__show_warning("Выберете носитель информации, который хотите добавить в БД")
+         return
          #Проверяем, есть ли в базе носитель с таким серийником
-      for drive in self.drives:
-         if self.selected[0] == drive.index:
-            str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
-            m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
-      if db.check(m.hexdigest()):
-         self.__show_warning("Данный носитель информации уже есть в таблице")
       else:
+         for drive in self.drives:
+            if self.selected[0] == drive.index:
+               str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
+               m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
+               name=drive.name
+         if db.check(m.hexdigest()):
+            self.__show_warning("Данный носитель информации уже есть в таблице")
+            return
+         else:
          #Загружаем носители и заносим в базу имя и серийник выбранного носителя
-         db.insert_data(drive.name, m.hexdigest())
+            db.insert_data(name, m.hexdigest())
+            self.__show_warning("Носитель добавлен в базу")
       db.close_connection
 
          
@@ -222,31 +225,43 @@ class App():
       if self.selected is None:
          self.__show_warning("Выберете носитель информации, для которого необходимо создать QR-код")
       else:
-         self.__load_drives()
          for drive in self.drives:
-            if self.selected[0] == drive.index:
-               qrcode_img = qrcode.make(drive.serial_num)
-      
-      qrcode_name = self.selected[1]+".png"
-      qrcode_img.save("./img/" + qrcode_name)
+            if self.selected[4] == drive.serial_num:
+               str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
+               m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
+               if db.check(m.hexdigest()):
+                  qrcode_img = qrcode.make(drive.serial_num)
+                  qrcode_name = self.selected[1]+".png"
+                  qrcode_path = filedialog.askdirectory()
+                  qrcode_img.save(qrcode_path + qrcode_name)
+                  CTkMessagebox(title="QR-код", message="QR-код создан и размещен по пути:\n" + qrcode_path)
+                  # self.__show_warning("QR-код создан и размещен по пути:" + qrcode_path)
+               else:
+                  self.__show_warning("Невозможно создать QR-код, т.к. данного носителя нет в базе")
+                  return
       
       
    def __qrcode_check(self):
-      db=Database('example.db')
-      if self.selected is None:
-         self.__show_warning("Выберете носитель информации, для которого необходимо создать QR-код")
-      else:
-         self.__load_drives()
-         for drive in self.drives:
-            if self.selected[0] == drive.index:
-               qr_name = "./img/"+ drive.name + ".png"
-         img = cv2.imread(qr_name)
-         detect = cv2.QRCodeDetector()
-         value, _, _ = detect.detectAndDecode(img)
-         print (value)
-
+      for drive in self.drives:
+         if self.selected[4]==drive.serial_num:
+            qr_name = filedialog.askopenfilename()
+            img = cv2.imread(qr_name)
+            detect = cv2.QRCodeDetector()
+            value, _, _ = detect.detectAndDecode(img)
+            if value is not None:
+               CTkMessagebox(title="QR-код", message="Серийный номер: "+ value)
+               return
+            else:
+               self.__show_warning("QR-код для данного носителя отсутствует")
+               return
+      
 
    def __make_admin(self):
       self.tk.destroy()
       ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, "./main.py", None, 1)
       exit()
+      
+   def __full_info(self):
+      for drive in self.drives:
+            if self.selected[4] == drive.serial_num:
+               self.__show_warning("Все параметры")
