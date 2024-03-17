@@ -36,14 +36,16 @@ class App():
       set_default_color_theme("dark-blue")
       set_appearance_mode("dark")
       
+      self.tk = CTk()
+            
       if ctypes.windll.shell32.IsUserAnAdmin():
          is_admin = True
+         self.tk.title("Device monitoring: Administrator")
       else: 
          is_admin = False
+         self.tk.title("Device monitoring: User")
          
       self.is_admin=is_admin
-      self.tk = CTk()
-      self.tk.title("Device monitoring")
       self.tk.geometry("800x300")
       self.tk.minsize(800, 300)
       self.__menu()
@@ -243,21 +245,21 @@ class App():
       
    def __qrcode_check(self):
       qr_name = filedialog.askopenfilename()
-      img = cv2.imread(qr_name)
-      detect = cv2.QRCodeDetector()
-      value, _, _ = detect.detectAndDecode(img)
-      if value is not None:
+      if qr_name !="" and qr_name=="*.png":
+         img = cv2.imread(qr_name)
+         detect = cv2.QRCodeDetector()
+         value, _, _ = detect.detectAndDecode(img)
          CTkMessagebox(title="QR-код", message="Серийный номер: "+ value)
          return
-      else:
-         self.__show_warning("QR-код не читается")
-         return
-      
+      else: self.__show_warning("Неверный формат файла или файл не выбран")
 
    def __make_admin(self):
       self.tk.destroy()
-      ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, "./main.py", None, 1)
-      exit()
+      if ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, "./main.py", None, 1)==42:
+         exit()
+      else:
+         App()
+
       
    def __full_info(self):
       for drive in self.drives:
