@@ -10,22 +10,32 @@ class Database:
          CREATE TABLE IF NOT EXISTS items (
                id INTEGER PRIMARY KEY,
                name TEXT NOT NULL,
-               gost_hash TEXT
+               ser_num TEXT NOT NULL,
+               gost_hash TEXT NOT NULL
          )
       ''')
 
-   def insert_data(self, name, gost_hash):
-      self.cursor.execute('INSERT INTO items (name, gost_hash) VALUES (?, ?)', (name, gost_hash))
+   def insert_data(self, name, ser_num, gost_hash):
+      self.cursor.execute('INSERT INTO items (name, ser_num, gost_hash) VALUES (?, ?, ?)', (name, ser_num, gost_hash))
       self.conn.commit()
       
-   def check(self,gost_hash):
-         info=self.cursor.execute('SELECT * FROM items WHERE gost_hash = ?', (gost_hash, )).fetchone()
+   def check(self, x, y):
+         info=self.cursor.execute('SELECT * FROM items WHERE '+y+' = ?', (x, )).fetchone()
          if info is None:
             return
          if len(info) == 0: 
             return False
          else:
             return True
+         
+   # def check_ser_num(self,ser_num):
+   #       info=self.cursor.execute('SELECT * FROM items WHERE gost_hash = ?', (ser_num, )).fetchone()
+   #       if info is None:
+   #          return
+   #       if len(info) == 0: 
+   #          return False
+   #       else:
+   #          return True
 
    def close_connection(self):
       self.conn.close()

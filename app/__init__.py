@@ -21,7 +21,7 @@ import qrcode
 
 from app.disks import *
 from app.dataBase import Database
-from app.usb_eject import *
+# from app.usb_eject import *
 
 class App():
    
@@ -213,12 +213,13 @@ class App():
                str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
                m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
                name=drive.name
-         if db.check(m.hexdigest()):
+               ser_num = drive.serial_num
+         if db.check(m.hexdigest(), "gost_hash"):
             self.__show_warning("Данный носитель информации уже есть в таблице")
             return
          else:
          #Загружаем носители и заносим в базу имя и серийник выбранного носителя
-            db.insert_data(name, m.hexdigest())
+            db.insert_data(name, ser_num, m.hexdigest())
             self.__show_warning("Носитель добавлен в базу")
       db.close_connection
 
@@ -232,7 +233,7 @@ class App():
             if self.selected[4] == drive.serial_num:
                str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
                m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
-               if db.check(m.hexdigest()):
+               if db.check(m.hexdigest(), "gost_hash"):
                   qrcode_img = qrcode.make(drive.serial_num)
                   qrcode_name = self.selected[1]+".png"
                   qrcode_path = filedialog.askdirectory()+"/"
@@ -242,9 +243,11 @@ class App():
                else:
                   self.__show_warning("Невозможно создать QR-код, т.к. данного носителя нет в базе")
                   return
-      
+      db.close_connection
+       
       
    def __qrcode_check(self):
+      db=Database('example.db')
       qr_name = filedialog.askopenfilename()
       extensions = ['png', 'jpg', 'jpeg', 'svg']
       qr_png = (qr_name.split('.'))[-1].lower()
@@ -252,8 +255,13 @@ class App():
          img = cv2.imread(qr_name)
          detect = cv2.QRCodeDetector()
          value, _, _ = detect.detectAndDecode(img)
-         CTkMessagebox(title="QR-код", message="Серийный номер: "+ value)
+         if db.check(value, "ser_num"):
+            CTkMessagebox(title="QR-код", message="Серийный номер: "+ value)
+         else:
+            CTkMessagebox(title="QR-код", message="Такого носителя нет в базе"+ value)
       else: self.__show_warning("Неверный формат файла или файл не выбран")
+      db.close_connection
+
 
    def __make_admin(self):
       self.tk.destroy()
