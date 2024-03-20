@@ -19,6 +19,10 @@ class Database:
       self.cursor.execute('INSERT INTO items (name, ser_num, gost_hash) VALUES (?, ?, ?)', (name, ser_num, gost_hash))
       self.conn.commit()
       
+   def delete_data(self, gost_hash):
+      self.cursor.execute('DELETE FROM items WHERE gost_hash = ?',(gost_hash,))
+      self.conn.commit()
+      
    def check(self, x, y):
          info=self.cursor.execute('SELECT * FROM items WHERE '+y+' = ?', (x, )).fetchone()
          if info is None:

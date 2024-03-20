@@ -46,8 +46,9 @@ class App():
          self.tk.title("Device monitoring: User")
          
       self.is_admin=is_admin
-      self.tk.geometry("800x300")
-      self.tk.minsize(800, 300)
+      self.tk.geometry("1000x300")
+      self.tk.minsize(1000, 300)
+      self.tk.maxsize(1200,500)
       self.__menu()
       self.__init_table()
       self.__update_drives()
@@ -80,7 +81,11 @@ class App():
 
       if self.is_admin:
          update_button = CTkButton(
-            self.bottom_frame, text="Добавить в таблицу", command=self.__insert_data)
+            self.bottom_frame, text="Добавить в базу", command=self.__insert_data)
+         update_button.pack(side=RIGHT, padx=5)
+         
+         update_button = CTkButton(
+            self.bottom_frame, text="Удалить из базы", command=self.__delete_data)
          update_button.pack(side=RIGHT, padx=5)
       else:
          update_button = CTkButton(
@@ -140,7 +145,7 @@ class App():
       self.tk.bind("<<TreeviewSelect>>", lambda event: self.tk.focus_set())
       
       # определяем столбцы
-      columns = ("index", "name", "type", "capacity", "serial_num")
+      columns = ("index", "name", "type", "capacity", "serial_num", "approved")
       self.drive_tree = ttk.Treeview(
          columns=columns, show="headings", selectmode="browse")
       self.drive_tree.pack(fill=BOTH, expand=1, side=TOP)
@@ -151,22 +156,29 @@ class App():
       self.drive_tree.heading("type", text="Тип", anchor=W, command=lambda: self.__sort(2, False))
       self.drive_tree.heading("capacity", text="Объем", anchor=W, command=lambda: self.__sort(3, False))
       self.drive_tree.heading("serial_num", text="Серийный номер", anchor=W, command=lambda: self.__sort(4, False))
+      self.drive_tree.heading("approved", text="Одобренный", anchor=W, command=lambda: self.__sort(5, False))
+      
 
       self.drive_tree.column("#1", stretch=NO, width=60, minwidth=60)
-      self.drive_tree.column("#2", stretch=YES, width=150, minwidth=120)
-      self.drive_tree.column("#3", stretch=NO, width=100, minwidth=100)
-      self.drive_tree.column("#4", stretch=YES, width=150, minwidth=100)
-      self.drive_tree.column("#5", stretch=YES, width=150, minwidth=100)
-
+      self.drive_tree.column("#2", stretch=YES, width=250, minwidth=250)
+      self.drive_tree.column("#3", stretch=NO, width=60, minwidth=60)
+      self.drive_tree.column("#4", stretch=YES, width=100, minwidth=100)
+      self.drive_tree.column("#5", stretch=YES, width=250, minwidth=250)
+      self.drive_tree.column("#6", stretch=YES, width=150, minwidth=100)
+      
       self.drive_tree.bind("<<TreeviewSelect>>", self.__drive_selected)
       self.drive_tree.bind("<Double-Button-1>", lambda event: self.__full_info())
 
    def __update_drives(self):
+      db=Database('example.db')
       self.drive_tree.delete(*self.drive_tree.get_children())
       self.__load_drives()
       for drive in self.drives:
+         if db.check(drive.serial_num, "ser_num"):
+            approved="Да"
+         else: approved="Нет"
          self.drive_tree.insert("", END, values=(
-            drive.index, drive.name, drive.disk_type, self.__human_size(drive.capacity), drive.serial_num))
+            drive.index, drive.name, drive.disk_type, self.__human_size(drive.capacity), drive.serial_num, approved))
       self.selected = None
 
 
@@ -221,6 +233,27 @@ class App():
          #Загружаем носители и заносим в базу имя и серийник выбранного носителя
             db.insert_data(name, ser_num, m.hexdigest())
             self.__show_warning("Носитель добавлен в базу")
+            self.__update_drives()
+      db.close_connection
+
+
+   def __delete_data(self):
+      db=Database('example.db')
+      if self.selected is None:
+         self.__show_warning("Выберете носитель информации, который хотите удалиить из БД")
+         return
+      else:
+         for drive in self.drives:
+            if self.selected[0] == drive.index:
+               str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
+               m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
+         if db.check(m.hexdigest(), "gost_hash"):
+            db.delete_data(m.hexdigest())
+            self.__show_warning("Носитель удален из базы")
+            self.__update_drives()
+         else:
+            self.__show_warning("Носитель и так отсутствует в базе")
+            return
       db.close_connection
 
          
@@ -258,7 +291,7 @@ class App():
          if db.check(value, "ser_num"):
             CTkMessagebox(title="QR-код", message="Серийный номер: "+ value)
          else:
-            CTkMessagebox(title="QR-код", message="Такого носителя нет в базе"+ value)
+            CTkMessagebox(title="QR-код", message="Такого носителя нет в базе")
       else: self.__show_warning("Неверный формат файла или файл не выбран")
       db.close_connection
 
