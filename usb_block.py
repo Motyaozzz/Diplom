@@ -1,32 +1,41 @@
-from app.dataBase import Database
-import subprocess
-import usb
+import win32com.client
+
+def block_usb(serial_number):
+   wmi = win32com.client.GetObject("winmgmts:")
+   usb_devices = wmi.ExecQuery("SELECT * FROM Win32_DiskDrive WHERE InterfaceType='USB'")
+   
+   for usb_device in usb_devices:
+      if usb_device.SerialNumber == serial_number:
+         usb_device.Disable() # Блокируем устройство
+         print(f"USB флешка с серийным номером {serial_number} заблокирована")
+   
+   print(f"USB флешка с серийным номером {serial_number} не найдена")
+
+# Применение функции
+serial_number = "001CC0C61241C021341D06A8"  # Замените на нужный серийный номер USB флешки
+block_usb(serial_number)
 
 
 
+# import win32com.client
+# import os
 
-# Fetches the list of all usb devices:
-# result = subprocess.run(['devcon', 'hwids', '=usb'], 
-#    capture_output=True, text=True)
+# def block_usb(serial_number):
+#    wmi = win32com.client.GetObject("winmgmts:")
+#    usb_devices = wmi.ExecQuery("SELECT * FROM Win32_DiskDrive WHERE InterfaceType='USB'")
+   
+#    for usb_device in usb_devices:
+#       if usb_device.SerialNumber == serial_number:
+#          try:
+#                for partition in usb_device.associators("Win32_DiskDriveToDiskPartition"):
+#                   for logical_disk in partition.associators("Win32_LogicalDiskToPartition"):
+#                      logical_disk.DeviceID
+#                      os.system(f'wmic partition where DeviceID="{logical_disk.DeviceID}" set NoDefaultDriveLetter=true')  # Удаляем присвоенную букву диска
+#                print(f"USB флешка с серийным номером {serial_number} заблокирована")
+#          except Exception as e:
+#                print(f"Ошибка при блокировке USB флешки: {str(e)}")
+#                return
 
-import wmi
-c = wmi.WMI()
-if items := c.Win32_DiskDrive():
-   for item in items:
-      if item.InterfaceType=="USB":
-         hwid = item.SerialNumber
-         # print(hwid)
-         command = f'pnputil /disable-device "{hwid}"'
-         # print(command)
-         subprocess.run(command, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-         print("USB Root Hub disabled successfully.")
-         # subprocess.run(['devcon', 'disable', hwid]) # to disable
-
-# for items in c.Win32_DiskDrive():
-#    for item in items:
-#       if item.InterfaceType=="USB":
-#          print(item)
-
-# subprocess.run(['devcon', 'disable', parsed_hwid]) # to disable
-# subprocess.run(['devcon', 'enable', parsed_hwid]) # to enable
-
+# serial_number = "001CC0C61241C021341D06A8"  # Замените на нужный серийный номер USB флешки
+# block_usb(serial_number)  # Блокировка
+# # unblock_usb(serial_number)  # Разблокировка

@@ -15,6 +15,7 @@ pygost==5.13
 pypng==0.20220715.0
 pyusb==1.2.1
 pywin32==306
+pywinusb==0.4.2
 qrcode==7.4.2
 tk==0.1.0
 typing_extensions==4.10.0
