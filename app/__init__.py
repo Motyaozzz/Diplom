@@ -336,4 +336,3 @@ class App():
          # if items := c.Win32_LogicalDisk():
          #    for item in items:
          #       print (item)
-         window.textbox.configure(state="disabled")

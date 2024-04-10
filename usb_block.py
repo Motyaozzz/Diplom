@@ -44,32 +44,51 @@
 import winreg as reg
 import ctypes
 import sys
+import subprocess
 
 if not ctypes.windll.shell32.IsUserAnAdmin():
    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, "./usb_block.py", None, 1)
-else: exit()
+else: 
 
-key = reg.CreateKey(reg.HKEY_LOCAL_MACHINE, 'SYSTEM\\CurrentControlSet\\Services\\mountmgr')
-reg.SetValue(key, 'NoAutoMount', reg.REG_DWORD, '00000001')
-reg.CloseKey(key)
+   # Launch PowerShell
+   powershell_process = subprocess.Popen(["powershell"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-import win32file
-import winioctlcon
+   # Input commands to PowerShell
+   commands = [
+      b"diskpart\n",
+      b"automount disable\n"
+   ]
 
-startDisk = win32file.CreateFile(f"\\\\.\\PHYSICALDRIVE1", 
-                                 win32file.GENERIC_READ | win32file.GENERIC_WRITE,
-                                 win32file.FILE_SHARE_READ |
-                                 win32file.FILE_SHARE_WRITE,
-                                 None,
-                                 win32file.OPEN_EXISTING,
-                                 win32file.FILE_ATTRIBUTE_NORMAL,
-                                 None)
-win32file.DeviceIoControl(startDisk, 
-                        winioctlcon.FSCTL_DISMOUNT_VOLUME,
-                        None,
-                        None)
-win32file.DeviceIoControl(startDisk,
-                        winioctlcon.FSCTL_LOCK_VOLUME,
-                        None,
-                        None)
+   for command in commands:
+      powershell_process.stdin.write(command)
+      powershell_process.stdin.flush()
+
+   # Close PowerShell
+   powershell_process.stdin.close()
+   powershell_process.wait()
+
+   key = reg.CreateKey(reg.HKEY_LOCAL_MACHINE, 'SYSTEM\\CurrentControlSet\\Services\\mountmgr')
+   print(reg.QueryValueEx(key, "NoAutoMount"))
+   reg.SetValueEx(key, 'NoAutoMount',0, reg.REG_DWORD, 0x00000001)
+   reg.CloseKey(key)
+
+   import win32file
+   import winioctlcon
+
+   startDisk = win32file.CreateFile(f"\\\\.\\PHYSICALDRIVE1", 
+                                    win32file.GENERIC_READ | win32file.GENERIC_WRITE,
+                                    win32file.FILE_SHARE_READ |
+                                    win32file.FILE_SHARE_WRITE,
+                                    None,
+                                    win32file.OPEN_EXISTING,
+                                    win32file.FILE_ATTRIBUTE_NORMAL,
+                                    None)
+   win32file.DeviceIoControl(startDisk, 
+                           winioctlcon.FSCTL_DISMOUNT_VOLUME,
+                           None,
+                           None)
+   win32file.DeviceIoControl(startDisk,
+                           winioctlcon.FSCTL_LOCK_VOLUME,
+                           None,
+                           None)
 
