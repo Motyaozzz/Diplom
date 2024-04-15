@@ -326,13 +326,24 @@ class App():
          c=wmi.WMI()
          if items := c.Win32_DiskDrive():
             for item in items:  
+               print(self.selected)
                if self.selected[4] == item.SerialNumber:
                   item = str(item)
                   start = item.find('{') + 1
                   end = item.rfind('}')
                   substring = item[start:end]
-
-                  window.textbox.insert("0.0", substring)
+      window.textbox.insert("0.0", substring)
+                  
          # if items := c.Win32_LogicalDisk():
-         #    for item in items:
-         #       print (item)
+         #    for item in items:  
+         #       print(item)
+         #       print(self.selected[4])
+         #       print("volume s n: " + item.VolumeSerialNumber)
+         #       if self.selected[4] == item.VolumeSerialNumber:
+         #          print("yes")
+         #          item = str(item)
+         #          start = item.find('{') + 1
+         #          end = item.rfind('}')
+         #          substring = item[start:end]
+         #          print(substring)
+         #          window.textbox.insert("0.0", substring)
