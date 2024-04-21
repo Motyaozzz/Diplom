@@ -288,7 +288,6 @@ class App():
                   self.__show_warning("Невозможно создать QR-код, т.к. данного носителя нет в базе")
                   return
       db.close_connection
-       
       
    def __qrcode_check(self):
       db=Database('example.db')
@@ -336,7 +335,6 @@ class App():
          c=wmi.WMI()
          if items := c.Win32_DiskDrive():
             for item in items:  
-               print(self.selected)
                if self.selected[4] == item.SerialNumber:
                   item = str(item)
                   start = item.find('{') + 1

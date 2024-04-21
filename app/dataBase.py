@@ -21,6 +21,10 @@ class Database:
       
    def delete_data(self, gost_hash):
       self.cursor.execute('DELETE FROM items WHERE gost_hash = ?',(gost_hash,))
+      self.cursor.execute(f'SELECT * FROM items')
+      rows = self.cursor.fetchall()
+      for i, row in enumerate(rows, start=1):
+         self.cursor.execute(f'UPDATE items SET id = ? WHERE id = ?', (i, row[0]))
       self.conn.commit()
       
    def check(self, x, y):
@@ -31,15 +35,6 @@ class Database:
             return False
          else:
             return True
-         
-   # def check_ser_num(self,ser_num):
-   #       info=self.cursor.execute('SELECT * FROM items WHERE gost_hash = ?', (ser_num, )).fetchone()
-   #       if info is None:
-   #          return
-   #       if len(info) == 0: 
-   #          return False
-   #       else:
-   #          return True
 
    def close_connection(self):
       self.conn.close()
