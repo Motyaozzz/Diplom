@@ -1,12 +1,9 @@
-import colorsys
-import imp
 from operator import index
-import tkinter
 from turtle import color
 from pygost.gost34112012 import GOST34112012
 import ctypes
 import sys
-import psutil
+import wmi
 
 from customtkinter import *
 from CTkMenuBar import *
@@ -231,6 +228,13 @@ class App():
             return
          else:
          #Загружаем носители и заносим в базу имя и серийник выбранного носителя
+            ws = wmi.WMI(namespace='root/Microsoft/Windows/Storage')
+            drives_mt = ws.MSFT_Partition()
+            for disk in ws.MSFT_Disk():
+               if disk.SerialNumber == self.selected[4]:
+                  for partition in disk.associators("MSFT_DiskToPartition"):
+                     print(partition.DiskNumber, partition.PartitionNumber, partition.AccessPaths, chr(partition.DriveLetter), disk.SerialNumber, disk.NumberOfPartitions) #DiskNumber постоянный у подключенного накопителя, по нему можно находить те диски которые нужно отключить
+                     partition.AddAccessPath(None, True) # присваиваем следующую свободную букву
             db.insert_data(name, ser_num, m.hexdigest())
             self.__show_warning("Носитель добавлен в базу")
             self.__update_drives()
@@ -248,11 +252,18 @@ class App():
                str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
                m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
          if db.check(m.hexdigest(), "gost_hash"):
+            ws = wmi.WMI(namespace='root/Microsoft/Windows/Storage')
+            drives_mt = ws.MSFT_Partition()
+            for disk in ws.MSFT_Disk():
+               if disk.SerialNumber == self.selected[4]:
+                  for partition in disk.associators("MSFT_DiskToPartition"):
+                     print(partition.DiskNumber, partition.PartitionNumber, partition.AccessPaths, chr(partition.DriveLetter), disk.SerialNumber, disk.NumberOfPartitions) #DiskNumber постоянный у подключенного накопителя, по нему можно находить те диски которые нужно отключить
+                     partition.RemoveAccessPath(f"{chr(partition.DriveLetter)}:") #удаляем букву у накопителя
             db.delete_data(m.hexdigest())
             self.__show_warning("Носитель удален из базы")
             self.__update_drives()
          else:
-            self.__show_warning("Носитель и так отсутствует в базе")
+            self.__show_warning("Такого носителя нет в базе")
             return
       db.close_connection
 
@@ -322,7 +333,6 @@ class App():
          window.textbox = CTkTextbox(master=window, width=800, height=650, corner_radius=0, text_color='white', fg_color="#212121")
          window.textbox.grid(row=0, column=0, sticky="nsew")
          
-         import wmi
          c=wmi.WMI()
          if items := c.Win32_DiskDrive():
             for item in items:  
@@ -332,18 +342,4 @@ class App():
                   start = item.find('{') + 1
                   end = item.rfind('}')
                   substring = item[start:end]
-      window.textbox.insert("0.0", substring)
-                  
-         # if items := c.Win32_LogicalDisk():
-         #    for item in items:  
-         #       print(item)
-         #       print(self.selected[4])
-         #       print("volume s n: " + item.VolumeSerialNumber)
-         #       if self.selected[4] == item.VolumeSerialNumber:
-         #          print("yes")
-         #          item = str(item)
-         #          start = item.find('{') + 1
-         #          end = item.rfind('}')
-         #          substring = item[start:end]
-         #          print(substring)
-         #          window.textbox.insert("0.0", substring)
+         window.textbox.insert("0.0", substring)
