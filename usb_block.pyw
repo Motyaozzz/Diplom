@@ -32,6 +32,8 @@ def write_logs(log: str) -> None:
       print(f"Failed attempt to write logs: {str(e)}")
    return
 
+write_logs("I'm started")
+
 while True:
    try:
       write_logs(db.get_data_from_database())

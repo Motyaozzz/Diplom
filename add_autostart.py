@@ -3,10 +3,11 @@ import ctypes
 import sys
 import os
 work_dir = os.path.dirname(os.path.realpath(__file__))
+pythonw_path = os.path.join(os.path.dirname(os.path.realpath(sys.executable)), "pythonw.exe")
 
 def add_to_startup(value_name, executable_path):
    key = winreg.HKEY_CURRENT_USER
-   key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
+   key_path = "Software\Microsoft\Windows\CurrentVersion\Run"
    
    try:
       with winreg.OpenKey(key, key_path, 0, winreg.KEY_WRITE) as reg_key:
@@ -16,7 +17,7 @@ def add_to_startup(value_name, executable_path):
 
 def remove_from_startup(value_name):
    key = winreg.HKEY_CURRENT_USER
-   key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
+   key_path = "Software\Microsoft\Windows\CurrentVersion\Run"
    
    try:
       with winreg.OpenKey(key, key_path, 0, winreg.KEY_WRITE) as reg_key:
@@ -26,11 +27,14 @@ def remove_from_startup(value_name):
 
 def run_as_admin():
    if not ctypes.windll.shell32.IsUserAnAdmin():
-      ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, '"{}" "{}"'.format(sys.executable, sys.argv[0]), None, 1)
+      ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
 
 # Имя значения и путь к исполняемому файлу программы
-value_name = "usb_block.pyw"
-executable_path = sys.executable + " " + os.path.join(work_dir, 'usb_block.pyw')
+value_name = "USB Controller (Matvey)"
+executable_path = pythonw_path + " " + os.path.join(work_dir, 'usb_block.pyw')
+
+# Проверка прав доступа и запуск от имени администратора при необходимости
+run_as_admin()
 
 # Удаление программы из автозапуска
 remove_from_startup(value_name)
@@ -38,5 +42,3 @@ remove_from_startup(value_name)
 # Добавление программы в автозапуск
 add_to_startup(value_name, executable_path)
 
-# Проверка прав доступа и запуск от имени администратора при необходимости
-run_as_admin()
