@@ -1,20 +1,7 @@
-from multiprocessing import connection
 import sqlite3
 import os
-import datetime
 
 work_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
-def write_logs(log: str) -> None:
-   try:
-      log_file = os.path.join(work_dir, "logs.txt")
-      current_time = datetime.datetime.now().strftime("%d.%m.%YT%H:%M:%S")
-      debug_log = f"[DATABASE.py] - {current_time}: {log}\n"
-
-      with open(log_file, 'a') as f:
-         f.write(debug_log)
-   except Exception as e:
-      print(f"Failed attempt to write logs: {str(e)}")
-   return
 
 class Database:
    def __init__(self, db_name):
@@ -49,14 +36,11 @@ class Database:
       cursor.close()
 
    def check(self, x, y):
-      write_logs(f"Checking - {x}, {y}")
       cursor = self.conn.cursor()
       info = cursor.execute('SELECT * FROM items WHERE '+y+' = ?', (x, )).fetchone()
       cursor.close()
-      write_logs(f"Info is None - {info is None}")
       if info is None:
          return
-      write_logs(f"Info len - {len(info)}")
       if len(info) == 0:
          return False
       else:

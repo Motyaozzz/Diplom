@@ -327,11 +327,12 @@ class App():
                   window.minsize(800, 650)   
                   window.maxsize(800, 650)
                   window.title("Полная информация о носителе") 
-               
+                  
+                  
                   window.textbox = CTkTextbox(master=window, width=800, height=650, corner_radius=0, text_color='white', fg_color="#212121")
                   window.textbox.grid(row=0, column=0, sticky="nsew")
                   window.textbox.insert("0.0", substring)
-                  item = None
-                     
-            if item is not None:
-               self.__show_warning("Просмотр полной информации возможен только для подключенного носителя")
+               item = None
+                  
+         if item is not None:
+            self.__show_warning("Просмотр полной информации возможен только для подключенного носителя")
