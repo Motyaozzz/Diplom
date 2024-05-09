@@ -18,7 +18,6 @@ import qrcode
 
 from app.disks import *
 from app.dataBase import Database
-# from app.usb_eject import *
 
 class App():
    
@@ -167,17 +166,24 @@ class App():
       self.drive_tree.bind("<Double-Button-1>", lambda event: self.__full_info())
 
    def __update_drives(self):
+      # print("INIT DB")
       db=Database('example.db')
+      # print("INIT DELETE TREE")
       self.drive_tree.delete(*self.drive_tree.get_children())
+      # print("INIT LOAD DRIVES")
       self.__load_drives()
+      # print("INIT GET DATA FROM DB")
+      rows = db.get_data_from_database()
+      # print("INIT ROWS LOOP")
+      for row in rows:
+         self.drive_tree.insert("", END, values=(row[0], row[1], '','', row[2], "Да"))
+      # print("INIT DRIVES LOOP")
       for drive in self.drives:
-         if db.check(drive.serial_num, "ser_num"):
-            approved="Да"
-         else: approved="Нет"
-         self.drive_tree.insert("", END, values=(
-            drive.index, drive.name, drive.disk_type, self.__human_size(drive.capacity), drive.serial_num, approved))
+         if not(db.check(drive.serial_num, "ser_num")):
+            self.drive_tree.insert("", END, values=(
+               drive.index, drive.name, drive.disk_type, self.__human_size(drive.capacity), drive.serial_num, "Нет"))
+      # print("INIT END")
       self.selected = None
-
 
 
    def __sort(self, col, reverse):
@@ -203,7 +209,7 @@ class App():
    def __drive_selected(self, event):
       for selected_item in self.drive_tree.selection():
          item = self.drive_tree.item(selected_item)
-         self.selected = item["values"]
+         self.selected = [str(value) for value in item["values"]]
          
          
    def __show_warning(self, text):
@@ -211,29 +217,34 @@ class App():
          
          
    def __insert_data(self):
+      def extract_string(value):
+         if value is None:
+            return ""
+         return str(value)
+
       db=Database('example.db')
       if self.selected is None:
          self.__show_warning("Выберете носитель информации, который хотите добавить в БД")
          return
          #Проверяем, есть ли в базе носитель с таким серийником
       else:
-         for drive in self.drives:
-            if self.selected[0] == drive.index:
-               str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
-               m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
-               name=drive.name
-               ser_num = drive.serial_num
-         if db.check(m.hexdigest(), "gost_hash"):
+         if db.check(str(self.selected[4]), "ser_num"):
             self.__show_warning("Данный носитель информации уже есть в таблице")
             return
          else:
+            for drive in self.drives:
+               if self.selected[4] == drive.serial_num:
+                  str_drive = "".join([extract_string(drive.serial_num), extract_string(drive.block_size), extract_string(drive.capacity), extract_string(drive.name)])
+                  m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
+                  name=drive.name
+                  ser_num = drive.serial_num
          #Загружаем носители и заносим в базу имя и серийник выбранного носителя
             ws = wmi.WMI(namespace='root/Microsoft/Windows/Storage')
-            drives_mt = ws.MSFT_Partition()
+            # drives_mt = ws.MSFT_Partition()
             for disk in ws.MSFT_Disk():
                if disk.SerialNumber == self.selected[4]:
                   for partition in disk.associators("MSFT_DiskToPartition"):
-                     print(partition.DiskNumber, partition.PartitionNumber, partition.AccessPaths, chr(partition.DriveLetter), disk.SerialNumber, disk.NumberOfPartitions) #DiskNumber постоянный у подключенного накопителя, по нему можно находить те диски которые нужно отключить
+                     partition.DiskNumber, partition.PartitionNumber, partition.AccessPaths, chr(partition.DriveLetter), disk.SerialNumber, disk.NumberOfPartitions #DiskNumber постоянный у подключенного накопителя, по нему можно находить те диски которые нужно отключить
                      partition.AddAccessPath(None, True) # присваиваем следующую свободную букву
             db.insert_data(name, ser_num, m.hexdigest())
             self.__show_warning("Носитель добавлен в базу")
@@ -244,22 +255,18 @@ class App():
    def __delete_data(self):
       db=Database('example.db')
       if self.selected is None:
-         self.__show_warning("Выберете носитель информации, который хотите удалиить из БД")
+         self.__show_warning("Выберете носитель информации, который хотите удалить из БД")
          return
       else:
-         for drive in self.drives:
-            if self.selected[0] == drive.index:
-               str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
-               m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
-         if db.check(m.hexdigest(), "gost_hash"):
-            ws = wmi.WMI(namespace='root/Microsoft/Windows/Storage')
-            drives_mt = ws.MSFT_Partition()
-            for disk in ws.MSFT_Disk():
-               if disk.SerialNumber == self.selected[4]:
-                  for partition in disk.associators("MSFT_DiskToPartition"):
-                     print(partition.DiskNumber, partition.PartitionNumber, partition.AccessPaths, chr(partition.DriveLetter), disk.SerialNumber, disk.NumberOfPartitions) #DiskNumber постоянный у подключенного накопителя, по нему можно находить те диски которые нужно отключить
-                     partition.RemoveAccessPath(f"{chr(partition.DriveLetter)}:") #удаляем букву у накопителя
-            db.delete_data(m.hexdigest())
+         if db.check(self.selected[4], "ser_num"):
+            # ws = wmi.WMI(namespace='root/Microsoft/Windows/Storage')
+            # drives_mt = ws.MSFT_Partition()
+            # for disk in ws.MSFT_Disk():
+            #    if disk.SerialNumber == self.selected[4]:
+            #       for partition in disk.associators("MSFT_DiskToPartition"):
+            #          print(partition.DiskNumber, partition.PartitionNumber, partition.AccessPaths, chr(partition.DriveLetter), disk.SerialNumber, disk.NumberOfPartitions) #DiskNumber постоянный у подключенного накопителя, по нему можно находить те диски которые нужно отключить
+            #          partition.RemoveAccessPath(f"{chr(partition.DriveLetter)}:") #удаляем букву у накопителя
+            db.delete_data(self.selected[4], "ser_num")
             self.__show_warning("Носитель удален из базы")
             self.__update_drives()
          else:
@@ -274,11 +281,11 @@ class App():
          self.__show_warning("Выберете носитель информации, для которого необходимо создать QR-код")
       else:
          for drive in self.drives:
-            if self.selected[4] == drive.serial_num:
-               str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
-               m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
-               if db.check(m.hexdigest(), "gost_hash"):
-                  qrcode_img = qrcode.make(drive.serial_num)
+            # if self.selected[4] == drive.serial_num:
+            #    str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
+            #    m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
+               if db.check(self.selected[4], "ser_num"):
+                  qrcode_img = qrcode.make(self.selected[4])
                   qrcode_name = self.selected[1]+".png"
                   qrcode_path = filedialog.askdirectory()+"/"
                   qrcode_img.save(qrcode_path + qrcode_name)
@@ -319,19 +326,6 @@ class App():
          self.__show_warning("Выберите носитель информации")
          return
       else:
-         set_default_color_theme("dark-blue")
-         set_appearance_mode("dark")
-
-         window = CTkToplevel()      
-         
-         window.geometry("800x650")
-         window.minsize(800, 650)   
-         window.maxsize(800, 650)
-         window.title("Полная информация о носителе") 
-      
-         window.textbox = CTkTextbox(master=window, width=800, height=650, corner_radius=0, text_color='white', fg_color="#212121")
-         window.textbox.grid(row=0, column=0, sticky="nsew")
-         
          c=wmi.WMI()
          if items := c.Win32_DiskDrive():
             for item in items:  
@@ -340,4 +334,20 @@ class App():
                   start = item.find('{') + 1
                   end = item.rfind('}')
                   substring = item[start:end]
-         window.textbox.insert("0.0", substring)
+                  set_default_color_theme("dark-blue")
+                  set_appearance_mode("dark")
+
+                  window = CTkToplevel()      
+                  
+                  window.geometry("800x650")
+                  window.minsize(800, 650)   
+                  window.maxsize(800, 650)
+                  window.title("Полная информация о носителе") 
+               
+                  window.textbox = CTkTextbox(master=window, width=800, height=650, corner_radius=0, text_color='white', fg_color="#212121")
+                  window.textbox.grid(row=0, column=0, sticky="nsew")
+                  window.textbox.insert("0.0", substring)
+                  item = None
+                     
+            if item is not None:
+               self.__show_warning("Просмотр полной информации возможен только для подключенного носителя")

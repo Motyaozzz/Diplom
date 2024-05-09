@@ -19,8 +19,8 @@ class Database:
       self.cursor.execute('INSERT INTO items (name, ser_num, gost_hash) VALUES (?, ?, ?)', (name, ser_num, gost_hash))
       self.conn.commit()
       
-   def delete_data(self, gost_hash):
-      self.cursor.execute('DELETE FROM items WHERE gost_hash = ?',(gost_hash,))
+   def delete_data(self, x, y):
+      self.cursor.execute('DELETE FROM items WHERE '+y+' = ?', (x, ))
       self.cursor.execute(f'SELECT * FROM items')
       rows = self.cursor.fetchall()
       for i, row in enumerate(rows, start=1):
@@ -28,13 +28,21 @@ class Database:
       self.conn.commit()
       
    def check(self, x, y):
-         info=self.cursor.execute('SELECT * FROM items WHERE '+y+' = ?', (x, )).fetchone()
-         if info is None:
-            return
-         if len(info) == 0: 
-            return False
-         else:
-            return True
+      info=self.cursor.execute('SELECT * FROM items WHERE '+y+' = ?', (x, )).fetchone()
+      if info is None:
+         return
+      if len(info) == 0: 
+         return False
+      else:
+         return True
+         
+   def get_data_from_database(self):
+      # Создаем подключение к базе данных
+      self.cursor.execute(f'SELECT * FROM items')
+      rows = self.cursor.fetchall()
+      self.conn.commit()
+      return rows
+
 
    def close_connection(self):
       self.conn.close()

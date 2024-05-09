@@ -4,19 +4,12 @@ import os
 class Drive():
 
    index: int = None
-
    path: str
-
    total_sectors: str
-
    disk_type = None
-
    name: str
-
    block_size: int = 512
-
    capacity: int
-
    serial_num = None
 
    def __init__(self, name, path, disk_type, block_size, capacity, dev_id, index):
