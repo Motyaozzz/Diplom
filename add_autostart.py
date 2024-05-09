@@ -1,6 +1,8 @@
 import winreg
 import ctypes
 import sys
+import os
+work_dir = os.path.dirname(os.path.realpath(__file__))
 
 def add_to_startup(value_name, executable_path):
    key = winreg.HKEY_CURRENT_USER
@@ -27,14 +29,14 @@ def run_as_admin():
       ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, '"{}" "{}"'.format(sys.executable, sys.argv[0]), None, 1)
 
 # Имя значения и путь к исполняемому файлу программы
-value_name = "usb_block.py"
-executable_path = sys.executable + " " + "C:\\Users\\mukha\\Desktop\\Diplom\\usb_block.py"
+value_name = "usb_block.pyw"
+executable_path = sys.executable + " " + os.path.join(work_dir, 'usb_block.pyw')
+
+# Удаление программы из автозапуска
+remove_from_startup(value_name)
 
 # Добавление программы в автозапуск
 add_to_startup(value_name, executable_path)
-
-# Удаление программы из автозапуска
-# remove_from_startup(value_name)
 
 # Проверка прав доступа и запуск от имени администратора при необходимости
 run_as_admin()

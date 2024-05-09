@@ -17,7 +17,7 @@ import cv2
 import qrcode
 
 from app.disks import *
-from app.dataBase import Database
+from app.dataBase import db
 
 class App():
    
@@ -166,23 +166,15 @@ class App():
       self.drive_tree.bind("<Double-Button-1>", lambda event: self.__full_info())
 
    def __update_drives(self):
-      # print("INIT DB")
-      db=Database('example.db')
-      # print("INIT DELETE TREE")
       self.drive_tree.delete(*self.drive_tree.get_children())
-      # print("INIT LOAD DRIVES")
       self.__load_drives()
-      # print("INIT GET DATA FROM DB")
       rows = db.get_data_from_database()
-      # print("INIT ROWS LOOP")
       for row in rows:
          self.drive_tree.insert("", END, values=(row[0], row[1], '','', row[2], "Да"))
-      # print("INIT DRIVES LOOP")
       for drive in self.drives:
          if not(db.check(drive.serial_num, "ser_num")):
             self.drive_tree.insert("", END, values=(
                drive.index, drive.name, drive.disk_type, self.__human_size(drive.capacity), drive.serial_num, "Нет"))
-      # print("INIT END")
       self.selected = None
 
 
@@ -222,7 +214,6 @@ class App():
             return ""
          return str(value)
 
-      db=Database('example.db')
       if self.selected is None:
          self.__show_warning("Выберете носитель информации, который хотите добавить в БД")
          return
@@ -249,11 +240,9 @@ class App():
             db.insert_data(name, ser_num, m.hexdigest())
             self.__show_warning("Носитель добавлен в базу")
             self.__update_drives()
-      db.close_connection
 
 
    def __delete_data(self):
-      db=Database('example.db')
       if self.selected is None:
          self.__show_warning("Выберете носитель информации, который хотите удалить из БД")
          return
@@ -272,32 +261,28 @@ class App():
          else:
             self.__show_warning("Такого носителя нет в базе")
             return
-      db.close_connection
 
          
    def __qrcode_make(self):
-      db=Database('example.db')
       if self.selected is None:
          self.__show_warning("Выберете носитель информации, для которого необходимо создать QR-код")
       else:
-         for drive in self.drives:
+         # for drive in self.drives:
             # if self.selected[4] == drive.serial_num:
             #    str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
             #    m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
-               if db.check(self.selected[4], "ser_num"):
-                  qrcode_img = qrcode.make(self.selected[4])
-                  qrcode_name = self.selected[1]+".png"
-                  qrcode_path = filedialog.askdirectory()+"/"
-                  qrcode_img.save(qrcode_path + qrcode_name)
-                  CTkMessagebox(title="QR-код", message="QR-код создан и размещен по пути:\n" + qrcode_path)
-                  # self.__show_warning("QR-код создан и размещен по пути:" + qrcode_path)
-               else:
-                  self.__show_warning("Невозможно создать QR-код, т.к. данного носителя нет в базе")
-                  return
-      db.close_connection
+            if db.check(self.selected[4], "ser_num"):
+               qrcode_img = qrcode.make(self.selected[4])
+               qrcode_name = self.selected[1]+".png"
+               qrcode_path = filedialog.askdirectory()+"/"
+               qrcode_img.save(qrcode_path + qrcode_name)
+               CTkMessagebox(title="QR-код", message="QR-код создан и размещен по пути:\n" + qrcode_path)
+               # self.__show_warning("QR-код создан и размещен по пути:" + qrcode_path)
+            else:
+               self.__show_warning("Невозможно создать QR-код, т.к. данного носителя нет в базе")
+               return
       
    def __qrcode_check(self):
-      db=Database('example.db')
       qr_name = filedialog.askopenfilename()
       extensions = ['png', 'jpg', 'jpeg', 'svg']
       qr_png = (qr_name.split('.'))[-1].lower()
@@ -310,7 +295,6 @@ class App():
          else:
             CTkMessagebox(title="QR-код", message="Такого носителя нет в базе")
       else: self.__show_warning("Неверный формат файла или файл не выбран")
-      db.close_connection
 
 
    def __make_admin(self):
