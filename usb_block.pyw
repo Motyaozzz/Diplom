@@ -7,11 +7,11 @@ import time
    
 ws = wmi.WMI(namespace='root/Microsoft/Windows/Storage')
 
-# def run_as_admin():
-#    if not ctypes.windll.shell32.IsUserAnAdmin():
-#       ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
+def run_as_admin():
+   if not ctypes.windll.shell32.IsUserAnAdmin():
+      ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
 
-# run_as_admin()
+run_as_admin()
 
 def extract_string(value):
    if value is None:
