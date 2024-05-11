@@ -1,9 +1,9 @@
+import abc
 from operator import index
 from turtle import color
 from pygost.gost34112012 import GOST34112012
 import ctypes
 import sys
-import wmi
 
 from customtkinter import *
 from CTkMenuBar import *
@@ -19,6 +19,50 @@ import qrcode
 from app.disks import *
 from app.dataBase import db
 
+# class DeviceController(abc.ABC):
+
+#    @abc.abstractmethod
+#    def mount_device(self):
+#       pass
+
+#    @abc.abstractmethod
+#    def remove_device(self):
+#       pass
+
+# class WindowsDeviceController(DeviceController):
+
+#    def check_is_admin(self):
+#       # Logic of check admin user on windows
+#       return
+#    def mount_device(self):
+#       # Logic of remove controller on windows
+#       return
+
+# class LinuxDeviceController(DeviceController):
+#    def check_is_admin(self):
+#       # Logic of check admin user on linux
+#       return
+#    def mount_device(self):
+#       # Logic of remove controller on linux
+#       return
+
+# def get_controller():
+#    if os == 'linux':
+#       return LinuxDeviceController()
+#    else:
+#       return WindowsDeviceController()
+
+# controller = get_controller()
+
+def check_user_is_admin():
+   if os == 'linux':
+      # Linux logic
+      return True
+   else:
+      # Windows logic
+      return True
+   return False # Is admin or not
+
 class App():
    
    drives: List[Drive] = []
@@ -33,14 +77,29 @@ class App():
       set_appearance_mode("dark")
       
       self.tk = CTk()
-            
-      if ctypes.windll.shell32.IsUserAnAdmin():
-         is_admin = True
-         self.tk.title("Device monitoring: Administrator")
-      else: 
+      self.OS_TYPE = platform.system()
+      try:
+         if self.OS_TYPE == "Windows":
+            if ctypes.windll.shell32.IsUserAnAdmin():
+               is_admin = True
+               self.tk.title("Device monitoring: Administrator")
+            else: 
+               is_admin = False
+               self.tk.title("Device monitoring: User")
+
+         elif self.OS_TYPE == "Linux":
+            print("im in init = "+str(os.getuid()))
+            if os.geteuid() == 0:
+               is_admin = True
+               self.tk.title("Device monitoring: Administrator")
+            else:
+               is_admin = False
+               self.tk.title("Device monitoring: User")  
+
+      except Exception as e:
          is_admin = False
-         self.tk.title("Device monitoring: User")
-         
+         self.tk.title("Device monitoring: Unknown OS user")
+
       self.is_admin=is_admin
       self.tk.geometry("1000x300")
       self.tk.minsize(1000, 300)
@@ -209,6 +268,7 @@ class App():
          
          
    def __insert_data(self):
+
       def extract_string(value):
          if value is None:
             return ""
@@ -230,13 +290,29 @@ class App():
                   name=drive.name
                   ser_num = drive.serial_num
          #Загружаем носители и заносим в базу имя и серийник выбранного носителя
-            ws = wmi.WMI(namespace='root/Microsoft/Windows/Storage')
-            # drives_mt = ws.MSFT_Partition()
-            for disk in ws.MSFT_Disk():
-               if disk.SerialNumber == self.selected[4]:
-                  for partition in disk.associators("MSFT_DiskToPartition"):
-                     partition.DiskNumber, partition.PartitionNumber, partition.AccessPaths, chr(partition.DriveLetter), disk.SerialNumber, disk.NumberOfPartitions #DiskNumber постоянный у подключенного накопителя, по нему можно находить те диски которые нужно отключить
-                     partition.AddAccessPath(None, True) # присваиваем следующую свободную букву
+            if self.OS_TYPE == "Windows":
+               import wmi
+               ws = wmi.WMI(namespace='root/Microsoft/Windows/Storage') # type: ignore
+               # drives_mt = ws.MSFT_Partition()
+               for disk in ws.MSFT_Disk():
+                  if disk.SerialNumber == self.selected[4]:
+                     for partition in disk.associators("MSFT_DiskToPartition"):
+                        partition.DiskNumber, partition.PartitionNumber, partition.AccessPaths, chr(partition.DriveLetter), disk.SerialNumber, disk.NumberOfPartitions #DiskNumber постоянный у подключенного накопителя, по нему можно находить те диски которые нужно отключить
+                        partition.AddAccessPath(None, True) # присваиваем следующую свободную букву
+
+            elif self.OS_TYPE == "Linux":
+               from diskinfo import Disk, DiskInfo
+
+               di = DiskInfo()
+               disks: List[Disk] = di.get_disk_list(sorting=True)
+               for disk in disks:
+                  if self.selected[4] == disk.get_serial_number():
+                     plist = disk.get_partition_list() # получаем все разделы на диске
+                     for item in plist:
+                        if item.get_fs_uuid() != "": # проверяем что раздел имеет uuid, если нет, то не монтируем его, так на нем нет файловой системы
+                           os.mkdir(f"/mnt/{item.get_fs_uuid()}", mode=777) # создаем папку /mnt/uuid, так монтирует линукс, если не задан явный путь монтирования, тут надо придумать, как получить кто будет владельцем папки, пока разрешаем доступ всем
+                           print(f"mount {item.get_path()} /mnt/{item.get_fs_uuid()}") # монтируем раздел в созданную папку
+
             db.insert_data(name, ser_num, m.hexdigest())
             self.__show_warning("Носитель добавлен в базу")
             self.__update_drives()
@@ -274,7 +350,10 @@ class App():
             if db.check(self.selected[4], "ser_num"):
                qrcode_img = qrcode.make(self.selected[4])
                qrcode_name = self.selected[1]+".png"
-               qrcode_path = filedialog.askdirectory()+"/"
+               filename = filedialog.askdirectory()
+               if len(filename) == 0:
+                  return
+               qrcode_path = filename+"/"
                qrcode_img.save(qrcode_path + qrcode_name)
                CTkMessagebox(title="QR-код", message="QR-код создан и размещен по пути:\n" + qrcode_path)
                # self.__show_warning("QR-код создан и размещен по пути:" + qrcode_path)
@@ -299,40 +378,63 @@ class App():
 
    def __make_admin(self):
       self.tk.destroy()
-      if ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, "./main.py", None, 1)==42:
-         exit()
-      else:
-         App()
+      if self.OS_TYPE == "Windows":
+         if ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, "./main.py", None, 1)==42:
+            exit()
+         else:
+            App()
+      elif self.OS_TYPE == "Linux":
+         os.execlp('sudo', 'sudo', sys.executable, *sys.argv)
 
       
    def __full_info(self):
+      self.OS_TYPE = platform.system()
+
+      def make_window_info(substring):
+         set_default_color_theme("dark-blue")
+         set_appearance_mode("dark")
+
+         window = CTkToplevel()      
+         
+         window.geometry("800x650")
+         window.minsize(800, 650)   
+         window.maxsize(800, 650)
+         window.title("Полная информация о носителе") 
+         
+         
+         window.textbox = CTkTextbox(master=window, width=800, height=650, corner_radius=0, text_color='white', fg_color="#212121")
+         window.textbox.grid(row=0, column=0, sticky="nsew")
+         window.textbox.insert("0.0", substring)
+
       if self.selected is None:
          self.__show_warning("Выберите носитель информации")
          return
       else:
-         c=wmi.WMI()
-         if items := c.Win32_DiskDrive():
-            for item in items:  
-               if self.selected[4] == item.SerialNumber:
-                  item = str(item)
-                  start = item.find('{') + 1
-                  end = item.rfind('}')
-                  substring = item[start:end]
-                  set_default_color_theme("dark-blue")
-                  set_appearance_mode("dark")
+         item = None
+         if self.OS_TYPE == "Windows":
+            import wmi
+            c=wmi.WMI()
+            if items := c.Win32_DiskDrive():
+               for item in items:  
+                  if self.selected[4] == item.SerialNumber:
+                     item = str(item)
+                     start = item.find('{') + 1
+                     end = item.rfind('}')
+                     substring = item[start:end]
+                     make_window_info(substring)
 
-                  window = CTkToplevel()      
+         elif self.OS_TYPE == "Linux":
+            from diskinfo import Disk, DiskInfo
+            di = DiskInfo()
+            items = di.get_disk_list(sorting=True)
+            for item in items:
+               if self.selected[4] == item.get_serial_number():
+                  item = str(item)
+                  start = item.find('()') + 1
+                  end = item.rfind(')')
+                  substring = item[start:end]
+                  substring = substring.replace(',', '\n')
+                  make_window_info(substring)
                   
-                  window.geometry("800x650")
-                  window.minsize(800, 650)   
-                  window.maxsize(800, 650)
-                  window.title("Полная информация о носителе") 
-                  
-                  
-                  window.textbox = CTkTextbox(master=window, width=800, height=650, corner_radius=0, text_color='white', fg_color="#212121")
-                  window.textbox.grid(row=0, column=0, sticky="nsew")
-                  window.textbox.insert("0.0", substring)
-               item = None
-                  
-         if item is not None:
-            self.__show_warning("Просмотр полной информации возможен только для подключенного носителя")
+      if item is None:
+         self.__show_warning("Просмотр полной информации возможен только для подключенного носителя")

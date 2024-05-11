@@ -6,7 +6,6 @@ Home-page: http://www.pygost.cypherpunks.ru/
 Author: Sergey Matveev
 Author-email: stargrave@stargrave.org
 License: GPLv3
-Platform: UNKNOWN
 Classifier: Development Status :: 5 - Production/Stable
 Classifier: Intended Audience :: Developers
 Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
@@ -92,5 +91,3 @@ Announcements also go to this mailing list.
 
 Development Git source code repository currently is located here:
 http://www.git.cypherpunks.ru/?p=pygost.git;a=summary
-
-
