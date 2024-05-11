@@ -1,4 +1,3 @@
-import abc
 from operator import index
 from turtle import color
 from pygost.gost34112012 import GOST34112012
@@ -18,50 +17,6 @@ import qrcode
 
 from app.disks import *
 from app.dataBase import db
-
-# class DeviceController(abc.ABC):
-
-#    @abc.abstractmethod
-#    def mount_device(self):
-#       pass
-
-#    @abc.abstractmethod
-#    def remove_device(self):
-#       pass
-
-# class WindowsDeviceController(DeviceController):
-
-#    def check_is_admin(self):
-#       # Logic of check admin user on windows
-#       return
-#    def mount_device(self):
-#       # Logic of remove controller on windows
-#       return
-
-# class LinuxDeviceController(DeviceController):
-#    def check_is_admin(self):
-#       # Logic of check admin user on linux
-#       return
-#    def mount_device(self):
-#       # Logic of remove controller on linux
-#       return
-
-# def get_controller():
-#    if os == 'linux':
-#       return LinuxDeviceController()
-#    else:
-#       return WindowsDeviceController()
-
-# controller = get_controller()
-
-def check_user_is_admin():
-   if os == 'linux':
-      # Linux logic
-      return True
-   else:
-      # Windows logic
-      return True
-   return False # Is admin or not
 
 class App():
    
@@ -293,7 +248,6 @@ class App():
             if self.OS_TYPE == "Windows":
                import wmi
                ws = wmi.WMI(namespace='root/Microsoft/Windows/Storage') # type: ignore
-               # drives_mt = ws.MSFT_Partition()
                for disk in ws.MSFT_Disk():
                   if disk.SerialNumber == self.selected[4]:
                      for partition in disk.associators("MSFT_DiskToPartition"):
@@ -311,7 +265,6 @@ class App():
                      plist = disk.get_partition_list() # получаем все разделы на диске
                      for item in plist:
                         if item.get_fs_uuid() != "": # проверяем что раздел имеет uuid, если нет, то не монтируем его, так на нем нет файловой системы
-                           # os.mkdir(f"/mnt/{item.get_fs_uuid()}", mode=777) # создаем папку /mnt/uuid, так монтирует линукс, если не задан явный путь монтирования, тут надо придумать, как получить кто будет владельцем папки, пока разрешаем доступ всем
                            print(f"mount {item.get_path()} /mnt/{item.get_fs_uuid()}") # монтируем раздел в созданную папку
                            os.mkdir(f"/mnt/{item.get_fs_uuid()}", mode=777)
                            subprocess.run(["mount", item.get_path(), f"/mnt/{item.get_fs_uuid()}"])
@@ -328,13 +281,6 @@ class App():
          return
       else:
          if db.check(self.selected[4], "ser_num"):
-            # ws = wmi.WMI(namespace='root/Microsoft/Windows/Storage')
-            # drives_mt = ws.MSFT_Partition()
-            # for disk in ws.MSFT_Disk():
-            #    if disk.SerialNumber == self.selected[4]:
-            #       for partition in disk.associators("MSFT_DiskToPartition"):
-            #          print(partition.DiskNumber, partition.PartitionNumber, partition.AccessPaths, chr(partition.DriveLetter), disk.SerialNumber, disk.NumberOfPartitions) #DiskNumber постоянный у подключенного накопителя, по нему можно находить те диски которые нужно отключить
-            #          partition.RemoveAccessPath(f"{chr(partition.DriveLetter)}:") #удаляем букву у накопителя
             db.delete_data(self.selected[4], "ser_num")
             self.__show_warning("Носитель удален из базы")
             self.__update_drives()
@@ -347,10 +293,6 @@ class App():
       if self.selected is None:
          self.__show_warning("Выберете носитель информации, для которого необходимо создать QR-код")
       else:
-         # for drive in self.drives:
-            # if self.selected[4] == drive.serial_num:
-            #    str_drive = drive.serial_num+str(drive.block_size)+str(drive.capacity)+drive.name
-            #    m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
             if db.check(self.selected[4], "ser_num"):
                qrcode_img = qrcode.make(self.selected[4])
                qrcode_name = self.selected[1]+".png"
@@ -360,7 +302,6 @@ class App():
                qrcode_path = filename+"/"
                qrcode_img.save(qrcode_path + qrcode_name)
                CTkMessagebox(title="QR-код", message="QR-код создан и размещен по пути:\n" + qrcode_path)
-               # self.__show_warning("QR-код создан и размещен по пути:" + qrcode_path)
             else:
                self.__show_warning("Невозможно создать QR-код, т.к. данного носителя нет в базе")
                return
@@ -414,7 +355,7 @@ class App():
          self.__show_warning("Выберите носитель информации")
          return
       else:
-         item = None
+         check = 0
          if self.OS_TYPE == "Windows":
             import wmi
             c=wmi.WMI()
@@ -426,6 +367,7 @@ class App():
                      end = item.rfind('}')
                      substring = item[start:end]
                      make_window_info(substring)
+                     check = 1                  
 
          elif self.OS_TYPE == "Linux":
             from diskinfo import Disk, DiskInfo
@@ -439,6 +381,6 @@ class App():
                   substring = item[start:end]
                   substring = substring.replace(',', '\n')
                   make_window_info(substring)
-                  
-      if item is None:
-         self.__show_warning("Просмотр полной информации возможен только для подключенного носителя")
+                  check = 1   
+         if check == 0:
+            self.__show_warning("Просмотр полной информации возможен только для подключенного носителя")                        
