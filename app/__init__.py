@@ -302,6 +302,7 @@ class App():
 
             elif self.OS_TYPE == "Linux":
                from diskinfo import Disk, DiskInfo
+               import subprocess
 
                di = DiskInfo()
                disks: List[Disk] = di.get_disk_list(sorting=True)
@@ -310,8 +311,11 @@ class App():
                      plist = disk.get_partition_list() # получаем все разделы на диске
                      for item in plist:
                         if item.get_fs_uuid() != "": # проверяем что раздел имеет uuid, если нет, то не монтируем его, так на нем нет файловой системы
-                           os.mkdir(f"/mnt/{item.get_fs_uuid()}", mode=777) # создаем папку /mnt/uuid, так монтирует линукс, если не задан явный путь монтирования, тут надо придумать, как получить кто будет владельцем папки, пока разрешаем доступ всем
+                           # os.mkdir(f"/mnt/{item.get_fs_uuid()}", mode=777) # создаем папку /mnt/uuid, так монтирует линукс, если не задан явный путь монтирования, тут надо придумать, как получить кто будет владельцем папки, пока разрешаем доступ всем
                            print(f"mount {item.get_path()} /mnt/{item.get_fs_uuid()}") # монтируем раздел в созданную папку
+                           os.mkdir(f"/mnt/{item.get_fs_uuid()}", mode=777)
+                           subprocess.run(["mount", item.get_path(), f"/mnt/{item.get_fs_uuid()}"])
+                           self.__show_warning(f"Носитель смонтирован в /mnt/{item.get_fs_uuid()}")
 
             db.insert_data(name, ser_num, m.hexdigest())
             self.__show_warning("Носитель добавлен в базу")

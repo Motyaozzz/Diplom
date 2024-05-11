@@ -19,41 +19,47 @@ if OS_TYPE == "Linux":
    from diskinfo import Disk, DiskInfo
    import subprocess
 
+   if os.geteuid() != 0:
+   # Перезапускаем программу из-под sudo с запросом пароля
+      os.execlp('sudo', 'sudo', sys.executable, *sys.argv)
+
+   udev_rule = """ACTION=="add"
+KERNEL=="sd[b-z]*"
+OWNER!="root"
+ENV{UDISKS_PRESENTATION_HIDE}="1"
+ENV{UDISKS_PRESENTATION_NOPOLICY}="1"
+ENV{UDISKS_AUTOMOUNT_HINT}="never"
+ENV{UDISKS_SYSTEM_INTERNAL}="1"
+ENV{UDISKS_IGNORE}="1"
+ENV{UDISKS_AUTO}="0" """
+
+   # Путь для сохранения правила udev
+   udev_rule_path = "/etc/udev/rules.d/99-prevent-mount.rules"
+
+   # Запись правила udev в файл
+   with open(udev_rule_path, 'w') as f:
+      f.write(udev_rule)
+
+   # Запуск команды, чтобы перезагрузить правила udev
+   subprocess.run(["udevadm", "control", "--reload"])
+   subprocess.run(["udevadm", "trigger"])
+
    def unmount(disk: Disk):
          # with open('/etc/udisks2/udisks2.conf', 'r') as f:
          #    if 'udisks-daemon-timeout' not in f.read():
          #       # Параметр не задан, добавляем его в файл конфигурации
          #       with open('/etc/udisks2/udisks2.conf', 'a') as f:
          #          f.write('\n[Settings]\nudisks-daemon-timeout=-1\n')
-         udev_rule = """
-            ACTION=="add", KERNEL=="sd[b-z]*", OWNER!="root", ENV{UDISKS_IGNORE}="1"
-            """
-
-         # Путь для сохранения правила udev
-         udev_rule_path = "/etc/udev/rules.d/99-prevent-mount.rules"
-
-         # Запись правила udev в файл
-         with open(udev_rule_path, 'w') as f:
-            f.write(udev_rule)
-
-         # Запуск команды, чтобы перезагрузить правила udev
-         subprocess.run(["udevadm", "control", "--reload"])
-         subprocess.run(["udevadm", "trigger"])
-         
          plist = disk.get_partition_list()
          for item in plist:
             if item.get_fs_uuid() != "" and item.get_fs_mounting_point() != "": # проверяем, что есть фс и она смонтирована куда-то
-               os.rmdir(f"/mnt/{item.get_fs_uuid()}")
                try:
                   subprocess.run(["umount", item.get_path()])
                   print(f"Device '{item.get_path()}' has been successfully unmounted.")
+                  os.rmdir(f"/mnt/{item.get_fs_uuid()}")
                except subprocess.CalledProcessError as e:
                   print(f"Error: {e}")
                print(f"umount {item.get_path()}") # размонтируем
-   
-   if os.geteuid() != 0:
-      # Перезапускаем программу из-под sudo с запросом пароля
-      os.execlp('sudo', 'sudo', sys.executable, *sys.argv)
 
    while True:
       try:
