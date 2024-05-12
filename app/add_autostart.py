@@ -9,6 +9,8 @@ import platform
 os_type = platform.system()
 work_dir = os.path.dirname(os.path.realpath(__file__))
 pythonw_path = os.path.join(os.path.dirname(os.path.realpath(sys.executable)), "pythonw.exe")
+c = os.getcwd()
+
 
 if os_type == "Windows":
 
@@ -60,7 +62,7 @@ Restart=always
 User=root
 RestartSec=60
 WorkingDirectory={work_dir}
-ExecStart={work_dir}/venv/bin/python {work_dir}/usb_block.pyw
+ExecStart={c}/venv/bin/python {work_dir}/usb_block.pyw
 
 [Install]
 WantedBy=multi-user.target

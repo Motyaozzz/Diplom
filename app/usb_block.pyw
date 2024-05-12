@@ -46,8 +46,10 @@ ENV{UDISKS_AUTO}="0" """
    def mount(disk: Disk):
       plist = disk.get_partition_list()
       for item in plist:
-         if item.get_fs_uuid() != "" and item.get_fs_mounting_point() == "": # проверяем, что есть фс и она смонтирована куда-то
+         if item.get_fs_uuid() != "" and item.get_fs_mounting_point() == "":
             try:
+               if os.path.ismount(f"/mnt/{item.get_fs_uuid()}"):
+                  subprocess.run(["sudo", "umount", f"/mnt/{item.get_fs_uuid()}"])                              
                subprocess.run(["sudo", "mount", item.get_path(), f"/mnt/{item.get_fs_uuid()}"])
             except subprocess.CalledProcessError as e:
                print(f"Error: {e}")
@@ -59,7 +61,7 @@ ENV{UDISKS_AUTO}="0" """
                if item.get_fs_mounting_point() == "/":
                   return
                else:
-                  try:
+                  try:                          
                      subprocess.run(["sudo", "umount", item.get_path()])
                      subprocess.run(["sudo", "rm", "-rf", f"/mnt/{item.get_fs_uuid()}"])
                   except subprocess.CalledProcessError as e:

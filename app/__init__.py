@@ -231,9 +231,6 @@ class App():
             return ""
          return str(value)
 
-      print(self.selected)
-      print(self.selected[4])
-
       if self.selected is None:
          self.__show_warning("Выберете носитель информации, который хотите добавить в БД")
          return
@@ -278,12 +275,8 @@ class App():
                      plist = disk.get_partition_list() # получаем все разделы на диске
                      for item in plist:
                         if item.get_fs_uuid() != "": # проверяем что раздел имеет uuid, если нет, то не монтируем его, так на нем нет файловой системы
-                           print(f"mount {item.get_path()} /mnt/{item.get_fs_uuid()}") # монтируем раздел в созданную папку
-
-                           # os.mkdir(f"/mnt/{item.get_fs_uuid()}", mode=0o777)
-                           # subprocess.run(["mount", item.get_path(), f"/mnt/{item.get_fs_uuid()}"])
-                           
                            os.makedirs(f"/mnt/{item.get_fs_uuid()}", mode=0o777, exist_ok=True)
+                           subprocess.run(["sudo", "chmod", "-R", "777", f"/mnt/{item.get_fs_uuid()}"])
                            subprocess.run(["sudo", "mount", item.get_path(), f"/mnt/{item.get_fs_uuid()}"])
                            self.__show_warning(f"Носитель смонтирован в /mnt/{item.get_fs_uuid()}")
       self.__update_drives()
