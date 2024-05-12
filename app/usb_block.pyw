@@ -44,22 +44,27 @@ ENV{UDISKS_AUTO}="0" """
    subprocess.run(["udevadm", "control", "--reload"])
    subprocess.run(["udevadm", "trigger"])
 
+   def mount(disk: Disk):
+      plist = disk.get_partition_list()
+      for item in plist:
+         if item.get_fs_uuid() != "" and item.get_fs_mounting_point() == "": # проверяем, что есть фс и она смонтирована куда-то
+            try:
+               subprocess.run(["sudo", "mount", item.get_path(), f"/mnt/{item.get_fs_uuid()}"])
+            except subprocess.CalledProcessError as e:
+               print(f"Error: {e}")
+
    def unmount(disk: Disk):
-         # with open('/etc/udisks2/udisks2.conf', 'r') as f:
-         #    if 'udisks-daemon-timeout' not in f.read():
-         #       # Параметр не задан, добавляем его в файл конфигурации
-         #       with open('/etc/udisks2/udisks2.conf', 'a') as f:
-         #          f.write('\n[Settings]\nudisks-daemon-timeout=-1\n')
          plist = disk.get_partition_list()
          for item in plist:
             if item.get_fs_uuid() != "" and item.get_fs_mounting_point() != "": # проверяем, что есть фс и она смонтирована куда-то
-               try:
-                  subprocess.run(["umount", item.get_path()])
-                  print(f"Device '{item.get_path()}' has been successfully unmounted.")
-                  os.rmdir(f"/mnt/{item.get_fs_uuid()}")
-               except subprocess.CalledProcessError as e:
-                  print(f"Error: {e}")
-               print(f"umount {item.get_path()}") # размонтируем
+               if item.get_fs_mounting_point() == "/":
+                  return
+               else:
+                  try:
+                     subprocess.run(["sudo", "umount", item.get_path()])
+                     subprocess.run(["sudo", "rm", "-rf", f"/mnt/{item.get_fs_uuid()}"])
+                  except subprocess.CalledProcessError as e:
+                     print(f"Error: {e}")
 
    while True:
       try:
@@ -70,6 +75,8 @@ ENV{UDISKS_AUTO}="0" """
             m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
             if not db.check(m.hexdigest(),"gost_hash"):
                unmount(disk)
+            else:
+               mount(disk)
       except Exception as e:
          print(str(e))
       

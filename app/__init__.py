@@ -1,4 +1,3 @@
-from asyncio.windows_events import NULL
 from operator import index
 from turtle import color
 from types import NoneType
@@ -280,8 +279,12 @@ class App():
                      for item in plist:
                         if item.get_fs_uuid() != "": # проверяем что раздел имеет uuid, если нет, то не монтируем его, так на нем нет файловой системы
                            print(f"mount {item.get_path()} /mnt/{item.get_fs_uuid()}") # монтируем раздел в созданную папку
-                           os.mkdir(f"/mnt/{item.get_fs_uuid()}", mode=777)
-                           subprocess.run(["mount", item.get_path(), f"/mnt/{item.get_fs_uuid()}"])
+
+                           # os.mkdir(f"/mnt/{item.get_fs_uuid()}", mode=0o777)
+                           # subprocess.run(["mount", item.get_path(), f"/mnt/{item.get_fs_uuid()}"])
+                           
+                           os.makedirs(f"/mnt/{item.get_fs_uuid()}", mode=0o777, exist_ok=True)
+                           subprocess.run(["sudo", "mount", item.get_path(), f"/mnt/{item.get_fs_uuid()}"])
                            self.__show_warning(f"Носитель смонтирован в /mnt/{item.get_fs_uuid()}")
       self.__update_drives()
                            
