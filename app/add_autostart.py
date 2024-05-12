@@ -57,6 +57,7 @@ StartLimitIntervalSec=0
 [Service]
 Type=simple
 Restart=always
+User=root
 RestartSec=60
 WorkingDirectory={work_dir}
 ExecStart={work_dir}/venv/bin/python {work_dir}/usb_block.pyw

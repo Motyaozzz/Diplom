@@ -25,7 +25,6 @@ if OS_TYPE == "Linux":
 
    udev_rule = """ACTION=="add"
 KERNEL=="sd[b-z]*"
-OWNER!="root"
 ENV{UDISKS_PRESENTATION_HIDE}="1"
 ENV{UDISKS_PRESENTATION_NOPOLICY}="1"
 ENV{UDISKS_AUTOMOUNT_HINT}="never"
