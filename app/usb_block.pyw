@@ -1,4 +1,4 @@
-from app.dataBase import db, work_dir
+from dataBase import db, work_dir
 from pygost.gost34112012 import GOST34112012
 import ctypes
 import sys

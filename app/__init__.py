@@ -1,5 +1,7 @@
+from asyncio.windows_events import NULL
 from operator import index
 from turtle import color
+from types import NoneType
 from pygost.gost34112012 import GOST34112012
 import ctypes
 import sys
@@ -222,6 +224,7 @@ class App():
       CTkMessagebox(title="Ошибка", message=text)
          
          
+         
    def __insert_data(self):
 
       def extract_string(value):
@@ -229,8 +232,15 @@ class App():
             return ""
          return str(value)
 
+      print(self.selected)
+      print(self.selected[4])
+
       if self.selected is None:
          self.__show_warning("Выберете носитель информации, который хотите добавить в БД")
+         return
+      
+      elif self.selected[4] == 'None':
+         self.__show_warning("В базу нельзя добавить носитель без серийного номера")
          return
          #Проверяем, есть ли в базе носитель с таким серийником
       else:
@@ -242,8 +252,12 @@ class App():
                if self.selected[4] == drive.serial_num:
                   str_drive = "".join([extract_string(drive.serial_num), extract_string(drive.block_size), extract_string(drive.capacity), extract_string(drive.name)])
                   m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
-                  name=drive.name
+                  name = drive.name
                   ser_num = drive.serial_num
+
+                  db.insert_data(name, ser_num, m.hexdigest())
+                  self.__show_warning("Носитель добавлен в базу")
+
          #Загружаем носители и заносим в базу имя и серийник выбранного носителя
             if self.OS_TYPE == "Windows":
                import wmi
@@ -269,12 +283,8 @@ class App():
                            os.mkdir(f"/mnt/{item.get_fs_uuid()}", mode=777)
                            subprocess.run(["mount", item.get_path(), f"/mnt/{item.get_fs_uuid()}"])
                            self.__show_warning(f"Носитель смонтирован в /mnt/{item.get_fs_uuid()}")
-
-            db.insert_data(name, ser_num, m.hexdigest())
-            self.__show_warning("Носитель добавлен в базу")
-            self.__update_drives()
-
-
+      self.__update_drives()
+                           
    def __delete_data(self):
       if self.selected is None:
          self.__show_warning("Выберете носитель информации, который хотите удалить из БД")
