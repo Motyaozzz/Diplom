@@ -67,6 +67,7 @@ ExecStart={c}/venv/bin/python {work_dir}/usb_block.pyw
 [Install]
 WantedBy=multi-user.target
    """
+# ExecStart={workdir}/../venv/bin/python {work_dir}/usb_block.pyw - попробовать
 
    # Путь для сохранения правила
    rule_path = "/etc/systemd/system/USB_Controller_Matvey.service"
