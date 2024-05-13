@@ -1,6 +1,3 @@
-from operator import index
-from turtle import color
-from types import NoneType
 from pygost.gost34112012 import GOST34112012
 import ctypes
 import sys
@@ -8,10 +5,10 @@ import sys
 from customtkinter import *
 from CTkMenuBar import *
 from CTkMessagebox import *
-from tkinter import Tk, Toplevel, ttk
+from tkinter import ttk
 
 import platform
-from typing import List, Tuple
+from typing import List
 
 import cv2
 import qrcode
@@ -34,6 +31,23 @@ class App():
       
       self.tk = CTk()
       self.OS_TYPE = platform.system()
+      
+      try:
+         if self.OS_TYPE == "Windows":
+            if os.system(f'schtasks /query /TN "USB Controller (Matvey)" > nul') == 1:
+               os.system(f'python {os.path.dirname(os.path.realpath(__file__))}/add_autostart.py')
+            else:
+               print("windows service already exists")
+               return
+            
+         elif self.OS_TYPE == "Linux":
+            if not (os.path.exists("/etc/systemd/system/USB_Controller_Matvey.service")):
+               os.system(f'python {os.path.dirname(os.path.realpath(__file__))}/add_autostart.py')
+            else:
+               return
+      except Exception as e:
+         print(e)
+
       try:
          if self.OS_TYPE == "Windows":
             if ctypes.windll.shell32.IsUserAnAdmin():
