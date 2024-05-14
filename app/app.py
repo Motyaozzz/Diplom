@@ -217,11 +217,10 @@ class App():
       self.drive_tree.delete(*self.drive_tree.get_children())
       self.__load_drives()
       rows = db.get_data_from_database()
-      if rows == []:
-         counter = 1
+      counter = 1
       for row in rows:
-         self.drive_tree.insert("", ctk.END, values=(row[0], row[1], '','', row[2], "Да"))
-         counter=row[0]+1
+         self.drive_tree.insert("", ctk.END, values=(counter, row[1], row[4], row[3], row[0], "Да"))
+         counter+=1
       for drive in self.drives:
          if not(db.check(drive.serial_num, "ser_num")):
             self.drive_tree.insert("", ctk.END, values=(
@@ -287,8 +286,9 @@ class App():
                   m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
                   name = drive.name
                   ser_num = drive.serial_num
+                  interface_type = drive.disk_type
 
-                  db.insert_data(name, ser_num, m.hexdigest())
+                  db.insert_data(ser_num, name, m.hexdigest(), interface_type)
                   self.__show_warning("Носитель добавлен в базу")
 
          #Загружаем носители и заносим в базу имя и серийник выбранного носителя
@@ -324,7 +324,7 @@ class App():
          return
       else:
          if db.check(self.selected[4], "ser_num"):
-            db.delete_data(self.selected[4], "ser_num")
+            db.delete_data(self.selected[4])
             self.__show_warning("Носитель удален из базы")
             self.__update_drives()
          else:

@@ -9,35 +9,45 @@ class Database:
       cursor = self.conn.cursor()
 
       cursor.execute('''
-         CREATE TABLE IF NOT EXISTS items (
-               id INTEGER PRIMARY KEY,
+         CREATE TABLE IF NOT EXISTS hash (
+               ser_num TEXT PRIMARY KEY,
                name TEXT NOT NULL,
-               ser_num TEXT NOT NULL,
                gost_hash TEXT NOT NULL
+         )
+      ''')
+      cursor.execute('''   
+         CREATE TABLE IF NOT EXISTS interface (
+               name TEXT PRIMARY KEY,
+               interface_type TEXT NOT NULL
          )
       ''')
       self.conn.commit()
       cursor.close()
 
-   def insert_data(self, name, ser_num, gost_hash):
+   def insert_data(self, ser_num, name, gost_hash, interface_type):
       cursor = self.conn.cursor()
-      cursor.execute('INSERT INTO items (name, ser_num, gost_hash) VALUES (?, ?, ?)', (name, ser_num, gost_hash))
+      cursor.execute("SELECT * FROM interface WHERE name = ?", (name,))
+      existing_record = cursor.fetchone()
+      cursor.execute("INSERT INTO hash (ser_num, name, gost_hash) VALUES (?, ?, ?)", (ser_num, name, gost_hash))
+      if existing_record is None:
+         cursor.execute("INSERT INTO interface (name, interface_type) VALUES (?, ?)", (name, interface_type))
       self.conn.commit()
       cursor.close()
       
-   def delete_data(self, x, y):
+      
+   def delete_data(self, x):
       cursor = self.conn.cursor()
-      cursor.execute('DELETE FROM items WHERE '+y+' = ?', (x, ))
-      cursor.execute(f'SELECT * FROM items')
-      rows = cursor.fetchall()
-      for i, row in enumerate(rows, start=1):
-         cursor.execute(f'UPDATE items SET id = ? WHERE id = ?', (i, row[0]))
+      cursor.execute("SELECT name FROM hash WHERE ser_num = ?", (x,))
+      deleted_model = cursor.fetchone()[0]
+      cursor.execute("DELETE FROM interface WHERE name = ?", (deleted_model,))
+      cursor.execute("DELETE FROM hash WHERE ser_num = ?", (x,))
+
       self.conn.commit()
       cursor.close()
 
    def check(self, x, y):
       cursor = self.conn.cursor()
-      info = cursor.execute('SELECT * FROM items WHERE '+y+' = ?', (x, )).fetchone()
+      info = cursor.execute('SELECT * FROM hash WHERE '+y+' = ?', (x, )).fetchone()
       cursor.close()
       if info is None:
          return
@@ -49,12 +59,14 @@ class Database:
    def get_data_from_database(self):
       # Создаем подключение к базе данных
       cursor = self.conn.cursor()
-      cursor.execute(f'SELECT * FROM items')
-      rows = cursor.fetchall()
+      cursor.execute(f'SELECT * FROM hash')
+      
+      cursor.execute("SELECT hash.*, interface.* FROM hash LEFT JOIN interface ON hash.name = interface.name")
+      combined_records = cursor.fetchall()
       cursor.close()
-      return rows
+      return combined_records
 
-
+   
    def close_connection(self):
       self.conn.close()
 
