@@ -338,7 +338,7 @@ class App():
       else:
             if db.check(self.selected[4], "ser_num"):
                qrcode_img = qrcode.make(self.selected[4])
-               qrcode_name = self.selected[1]+".png"
+               qrcode_name = f"{self.selected[1]}({self.selected[4]}).png"
                filename = ctk.filedialog.askdirectory()
                if len(filename) == 0:
                   return
@@ -358,7 +358,6 @@ class App():
          detect = cv2.QRCodeDetector()
          value, _, _ = detect.detectAndDecode(img)
          if db.check(value, "ser_num"):
-            # ctkMBox.CTkMessagebox(title="QR-код", message="Серийный номер: "+ value)
             ctkMBox.CTkMessagebox(title="QR-код", message="Носитель есть в базе")
          else:
             ctkMBox.CTkMessagebox(title="QR-код", message="Такого носителя нет в базе")
