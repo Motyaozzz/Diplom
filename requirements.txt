@@ -1,0 +1,10 @@
+CTkMenuBar==0.8
+CTkMessagebox==2.5
+customtkinter==5.2.2
+diskinfo==3.1.2
+opencv_python==4.8.1.78
+pyderasn==66.0.3
+qrcode==7.4.2
+setuptools==58.1.0
+six==1.16.0
+wmi==1.5.1

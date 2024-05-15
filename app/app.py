@@ -39,16 +39,16 @@ class App():
 
    def check_task(self):
       if self.OS_TYPE == "Windows":
-         return os.system(f'schtasks /query /TN "USB Controller (Matvey)" > nul') == 0
+         return os.system(f'schtasks /query /TN "Device Controller" > nul') == 0
       if self.OS_TYPE == 'Linux':
-         return (os.path.exists("/etc/systemd/system/USB_Controller_Matvey.service"))
+         return (os.path.exists("/etc/systemd/system/Device_Controller.service"))
    
    def add_autostart_task(self):
       if not self.check_task():
          if self.OS_TYPE == "Windows":
-            ctkMBox.CTkMessagebox(title="Добавление задания Windows", message="Задание USB Controller (Matvey) для автоблокировки носителей добавлено")
+            ctkMBox.CTkMessagebox(title="Добавление задания Windows", message="Задание Device Controller для автоблокировки носителей добавлено")
          elif self.OS_TYPE == "Linux":
-            ctkMBox.CTkMessagebox(title="Добавление службы Linux", message="Служба USB_Controller_Matvey.service для автоблокировки носителей добавлена")
+            ctkMBox.CTkMessagebox(title="Добавление службы Linux", message="Служба Device_Controller.service для автоблокировки носителей добавлена")
          os.system(f'python {os.path.dirname(os.path.realpath(__file__))}/add_autostart.py')
    
    def __init__(self):
@@ -62,7 +62,7 @@ class App():
          self.__show_wait_window(title="Внимание", message="Войдите под администратором, чтобы добавить задание")
          self.add_autostart_task()
          # Нужно подождать, чтобы задание добавилось
-         time.sleep(15)
+         time.sleep(3)
 
       # Если всё-таки не зашел под админом
       if not self.check_admin() and not self.check_task():
@@ -120,7 +120,7 @@ class App():
       update_button.pack(side=ctk.RIGHT, padx=5)
       
       update_button = ctk.CTkButton(
-         self.bottom_frame, text="Полная информация о USB", command=self.__full_info)
+         self.bottom_frame, text="Полная информация о МНИ", command=self.__full_info)
       update_button.pack(side=ctk.RIGHT, padx=5)
 
       if self.is_admin:
@@ -219,8 +219,10 @@ class App():
       rows = db.get_data_from_database()
       counter = 1
       for row in rows:
-         self.drive_tree.insert("", ctk.END, values=(counter, row[1], row[4], row[3], row[0], "Да"))
-         counter+=1
+         for drive in self.drives:
+            if row[0] == drive.serial_num:
+               self.drive_tree.insert("", ctk.END, values=(counter, row[1], row[4], self.__human_size(drive.capacity), row[0], "Да"))
+               counter+=1
       for drive in self.drives:
          if not(db.check(drive.serial_num, "ser_num")):
             self.drive_tree.insert("", ctk.END, values=(

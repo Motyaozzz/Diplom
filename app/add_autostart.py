@@ -22,22 +22,22 @@ if os_type == "Windows":
 
    def create_task(program_path):
       # Команда для создания задачи планировщика
-      command = 'schtasks /create /tn "USB Controller (Matvey)" /tr "{}" /sc ONLOGON /RL HIGHEST /ru {}'.format(program_path, adm)
-      command_start = 'schtasks /run /tn "USB Controller (Matvey)'
+      command = 'schtasks /create /tn "Device Controller" /tr "{}" /sc ONLOGON /RL HIGHEST /ru {}'.format(program_path, adm)
+      command_start = 'schtasks /run /tn "Device Controller'
       # Выполнение команды
       subprocess.call(command, shell=True)
       subprocess.call(command_start, shell=True)
 
    def delete_task():
       # Команда для удаления задачи планировщика
-      command = 'schtasks /delete /tn "USB Controller (Matvey)" /f'
+      command = 'schtasks /delete /tn "Device Controller" /f'
       
       # Выполнение команды
       subprocess.call(command, shell=True)
 
 
    # Путь к вашей основной программе
-   program_path = pythonw_path + " " + os.path.join(work_dir, 'usb_block.pyw')
+   program_path = pythonw_path + " " + os.path.join(work_dir, 'device_block.pyw')
 
    run_as_admin()
    # Создание задачи планировщика
@@ -52,7 +52,7 @@ elif os_type == "Linux":
       os.execlp('sudo', 'sudo', sys.executable, *sys.argv)
 
    rule = f"""[Unit]
-Description=USB Controller (Matvey)
+Description=Device Controller
 After=mnt-wibble.mount
 StartLimitIntervalSec=0 
 
@@ -62,20 +62,20 @@ Restart=always
 User=root
 RestartSec=60
 WorkingDirectory={work_dir}
-ExecStart={c}/venv/bin/python {work_dir}/usb_block.pyw
+ExecStart={c}/venv/bin/python {work_dir}/device_block.pyw
 
 [Install]
 WantedBy=multi-user.target
    """
-# ExecStart={workdir}/../venv/bin/python {work_dir}/usb_block.pyw - попробовать
+# ExecStart={workdir}/../venv/bin/python {work_dir}/device_block.pyw - попробовать
 
    # Путь для сохранения правила
-   rule_path = "/etc/systemd/system/USB_Controller_Matvey.service"
+   rule_path = "/etc/systemd/system/Device_Controller.service"
 
    # Запись правила в файл
    with open(rule_path, 'w') as f:
       f.write(rule)
    
    subprocess.run(["systemctl", "daemon-reload"])
-   subprocess.run(["systemctl", "enable", "USB_Controller_Matvey.service"])
-   subprocess.run(["systemctl", "start", "USB_Controller_Matvey.service"])
+   subprocess.run(["systemctl", "enable", "Device_Controller.service"])
+   subprocess.run(["systemctl", "start", "Device_Controller.service"])
