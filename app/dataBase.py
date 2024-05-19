@@ -21,6 +21,7 @@ class Database:
                interface_type TEXT NOT NULL
          )
       ''')
+      # cursor.execute("REINDEX <table_name>") вот это пересчитывает
       self.conn.commit()
       cursor.close()
 
@@ -65,7 +66,6 @@ class Database:
       combined_records = cursor.fetchall()
       cursor.close()
       return combined_records
-
    
    def close_connection(self):
       self.conn.close()

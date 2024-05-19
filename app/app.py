@@ -13,7 +13,7 @@ from typing import List
 
 import cv2
 import qrcode
-
+   
 from app.disks import Drive
 from app.dataBase import db
 
@@ -29,7 +29,7 @@ class App():
       msg_box = ctkMBox.CTkMessagebox(title=title, message=message)
       msg_box.wait_window()
 
-   def check_admin(self) -> bool:
+   def __check_admin(self) -> bool:
       if self.OS_TYPE == "Windows":
          return ctypes.windll.shell32.IsUserAnAdmin()
       elif self.OS_TYPE == "Linux":
@@ -37,14 +37,14 @@ class App():
       else:
          return False
 
-   def check_task(self):
+   def __check_task(self):
       if self.OS_TYPE == "Windows":
          return os.system(f'schtasks /query /TN "Device Controller" > nul') == 0
       if self.OS_TYPE == 'Linux':
          return (os.path.exists("/etc/systemd/system/Device_Controller.service"))
    
-   def add_autostart_task(self):
-      if not self.check_task():
+   def __add_autostart_task(self):
+      if not self.__check_task():
          if self.OS_TYPE == "Windows":
             ctkMBox.CTkMessagebox(title="Добавление задания Windows", message="Задание Device Controller для автоблокировки носителей добавлено")
          elif self.OS_TYPE == "Linux":
@@ -57,15 +57,15 @@ class App():
       
       self.tk = ctk.CTk()
       self.OS_TYPE = platform.system()
+      self.window_info = None
+      if not self.__check_task():
+         if not self.__check_admin():
+            self.__show_wait_window(title="Внимание", message="Войдите под администратором, чтобы добавить задание")
+         self.__add_autostart_task()
 
-      if not self.check_admin() and not self.check_task():
-         self.__show_wait_window(title="Внимание", message="Войдите под администратором, чтобы добавить задание")
-         self.add_autostart_task()
-         # Нужно подождать, чтобы задание добавилось
-         time.sleep(3)
+         time.sleep(5)
 
-      # Если всё-таки не зашел под админом
-      if not self.check_admin() and not self.check_task():
+      if not self.__check_admin() and not self.__check_task():
          os._exit(1)
       
       try:
@@ -219,10 +219,12 @@ class App():
       rows = db.get_data_from_database()
       counter = 1
       for row in rows:
+         mem = None
          for drive in self.drives:
             if row[0] == drive.serial_num:
-               self.drive_tree.insert("", ctk.END, values=(counter, row[1], row[4], self.__human_size(drive.capacity), row[0], "Да"))
-               counter+=1
+               mem = drive.capacity
+         self.drive_tree.insert("", ctk.END, values=(counter, row[1], row[4], self.__human_size(mem) if mem is not None else "Not connected", row[0], "Да"))
+         counter+=1
       for drive in self.drives:
          if not(db.check(drive.serial_num, "ser_num")):
             self.drive_tree.insert("", ctk.END, values=(
@@ -276,7 +278,6 @@ class App():
       elif self.selected[4] == 'None':
          self.__show_warning("В базу нельзя добавить носитель без серийного номера")
          return
-         #Проверяем, есть ли в базе носитель с таким серийником
       else:
          if db.check(str(self.selected[4]), "ser_num"):
             self.__show_warning("Данный носитель информации уже есть в таблице")
@@ -293,15 +294,14 @@ class App():
                   db.insert_data(ser_num, name, m.hexdigest(), interface_type)
                   self.__show_warning("Носитель добавлен в базу")
 
-         #Загружаем носители и заносим в базу имя и серийник выбранного носителя
             if self.OS_TYPE == "Windows":
                import wmi
-               ws = wmi.WMI(namespace='root/Microsoft/Windows/Storage') # type: ignore
+               ws = wmi.WMI(namespace='root/Microsoft/Windows/Storage') 
                for disk in ws.MSFT_Disk():
                   if disk.SerialNumber == self.selected[4]:
                      for partition in disk.associators("MSFT_DiskToPartition"):
-                        partition.DiskNumber, partition.PartitionNumber, partition.AccessPaths, chr(partition.DriveLetter), disk.SerialNumber, disk.NumberOfPartitions #DiskNumber постоянный у подключенного накопителя, по нему можно находить те диски которые нужно отключить
-                        partition.AddAccessPath(None, True) # присваиваем следующую свободную букву
+                        partition.DiskNumber, partition.PartitionNumber, partition.AccessPaths, chr(partition.DriveLetter), disk.SerialNumber, disk.NumberOfPartitions
+                        partition.AddAccessPath(None, True) 
 
             elif self.OS_TYPE == "Linux":
                from diskinfo import Disk, DiskInfo
@@ -332,6 +332,7 @@ class App():
          else:
             self.__show_warning("Такого носителя нет в базе")
             return
+
 
          
    def __qrcode_make(self):
@@ -384,7 +385,7 @@ class App():
          ctk.set_default_color_theme("dark-blue")
          ctk.set_appearance_mode("dark")
 
-         window = ctk.CTkToplevel()      
+         window = ctk.CTkToplevel()
          
          window.geometry("800x650")
          window.minsize(800, 650)   
@@ -395,6 +396,7 @@ class App():
          window.textbox = ctk.CTkTextbox(master=window, width=800, height=650, corner_radius=0, text_color='white', fg_color="#212121")
          window.textbox.grid(row=0, column=0, sticky="nsew")
          window.textbox.insert("0.0", substring)
+         return window
 
       if self.selected is None:
          self.__show_warning("Выберите носитель информации")
@@ -411,7 +413,9 @@ class App():
                      start = item.find('{') + 1
                      end = item.rfind('}')
                      substring = item[start:end]
-                     make_window_info(substring)
+                     if self.window_info is not None:
+                        self.window_info.destroy()
+                     self.window_info = make_window_info(substring)
                      check = 1                  
 
          elif self.OS_TYPE == "Linux":
@@ -425,7 +429,9 @@ class App():
                   end = item.rfind(')')
                   substring = item[start:end]
                   substring = substring.replace(',', '\n')
-                  make_window_info(substring)
+                  if self.window_info is not None:
+                     self.window_info.destroy()
+                  self.window_info = make_window_info(substring)
                   check = 1   
          if check == 0:
             self.__show_warning("Просмотр полной информации возможен только для подключенного носителя")                        

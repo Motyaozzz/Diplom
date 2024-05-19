@@ -19,10 +19,6 @@ if OS_TYPE == "Linux":
    from diskinfo import Disk, DiskInfo
    import subprocess
 
-   if os.geteuid() != 0:
-   # Перезапускаем программу из-под sudo с запросом пароля
-      os.execlp('sudo', 'sudo', sys.executable, *sys.argv)
-
    udev_rule = """ACTION=="add"
 KERNEL=="sd[b-z]*"
 ENV{UDISKS_PRESENTATION_HIDE}="1"
@@ -32,14 +28,11 @@ ENV{UDISKS_SYSTEM_INTERNAL}="1"
 ENV{UDISKS_IGNORE}="1"
 ENV{UDISKS_AUTO}="0" """
 
-   # Путь для сохранения правила udev
    udev_rule_path = "/etc/udev/rules.d/99-prevent-mount.rules"
 
-   # Запись правила udev в файл
    with open(udev_rule_path, 'w') as f:
       f.write(udev_rule)
 
-   # Запуск команды, чтобы перезагрузить правила udev
    subprocess.run(["udevadm", "control", "--reload"])
    subprocess.run(["udevadm", "trigger"])
 
@@ -47,71 +40,47 @@ ENV{UDISKS_AUTO}="0" """
       plist = disk.get_partition_list()
       for item in plist:
          if item.get_fs_uuid() != "" and item.get_fs_mounting_point() == "":
-            try:
                if os.path.ismount(f"/mnt/{item.get_fs_uuid()}"):
                   subprocess.run(["sudo", "umount", f"/mnt/{item.get_fs_uuid()}"])                              
                subprocess.run(["sudo", "mount", item.get_path(), f"/mnt/{item.get_fs_uuid()}"])
-            except subprocess.CalledProcessError as e:
-               print(f"Error: {e}")
 
    def unmount(disk: Disk):
          plist = disk.get_partition_list()
          for item in plist:
             if item.get_fs_uuid() != "" and item.get_fs_mounting_point() != "": # проверяем, что есть фс и она смонтирована куда-то
-               if item.get_fs_mounting_point() == "/":
-                  return
-               else:
-                  try:                          
-                     subprocess.run(["sudo", "umount", item.get_path()])
-                     subprocess.run(["sudo", "rm", "-rf", f"/mnt/{item.get_fs_uuid()}"])
-                  except subprocess.CalledProcessError as e:
-                     print(f"Error: {e}")
+                  subprocess.run(["sudo", "umount", item.get_path()])
+                  subprocess.run(["sudo", "rm", "-rf", f"/mnt/{item.get_fs_uuid()}"])
 
    while True:
-      try:
-         di = DiskInfo()
-         disks: List[Disk] = di.get_disk_list(sorting=True)
-         for disk in disks:
-            str_drive = "".join([extract_string(disk.get_serial_number()), extract_string(disk.get_logical_block_size()), extract_string(disk.get_size()*512), extract_string(disk.get_model())])
-            m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
-            if not db.check(m.hexdigest(),"gost_hash"):
-               unmount(disk)
-            else:
-               mount(disk)
-      except Exception as e:
-         print(str(e))
-      
+      di = DiskInfo()
+      disks: List[Disk] = di.get_disk_list(sorting=True)
+      for disk in disks:
+         str_drive = "".join([extract_string(disk.get_serial_number()), extract_string(disk.get_logical_block_size()), extract_string(disk.get_size()*512), extract_string(disk.get_model())])
+         m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
+         if not db.check(m.hexdigest(),"gost_hash"):
+            unmount(disk)
+         else:
+            mount(disk)
       time.sleep(3)
-
 
 elif OS_TYPE == "Windows":
       import wmi
       ws = wmi.WMI(namespace='root/Microsoft/Windows/Storage')
-
+      
       if not ctypes.windll.shell32.IsUserAnAdmin():
          ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
-
+         
       while True:
-         try:
-            c = wmi.WMI()
-            if disks := c.Win32_DiskDrive():
-               for disk in disks:
-                  if disk.DefaultBlockSize is None:
-                     block_size=512
-                  else:
-                     block_size=disk.DefaultBlockSize
-                     
-                  str_drive = "".join([extract_string(disk.SerialNumber), extract_string(block_size), extract_string(disk.Size), extract_string(disk.Model)])
-                  m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
-                  if not db.check(m.hexdigest(),"gost_hash"):
-                     for disk in ws.MSFT_Disk():
-                        if not db.check(disk.SerialNumber, "ser_num"):
-                           for partition in disk.associators("MSFT_DiskToPartition"):
-                              if partition.DriveLetter != 0:
-                                 # partition.DiskNumber, partition.PartitionNumber, partition.AccessPaths, chr(partition.DriveLetter), disk.SerialNumber, disk.NumberOfPartitions #DiskNumber постоянный у подключенного накопителя, по нему можно находить те диски которые нужно отключить
-                                 partition.RemoveAccessPath(f"{chr(partition.DriveLetter)}:") #удаляем букву у накопителя
-
-         except Exception as e:
-            print(str(e))
-
+         c = wmi.WMI()
+         if disks := c.Win32_DiskDrive():
+            block_size = 512
+            for disk in disks:
+               str_drive = "".join([extract_string(disk.SerialNumber), extract_string(block_size), extract_string(disk.Size), extract_string(disk.Model)])
+               m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
+               if not db.check(m.hexdigest(),"gost_hash"):
+                  for disk in ws.MSFT_Disk():
+                     if not db.check(disk.SerialNumber, "ser_num"):
+                        for partition in disk.associators("MSFT_DiskToPartition"):
+                           if partition.DriveLetter != 0:
+                              partition.RemoveAccessPath(f"{chr(partition.DriveLetter)}:")
          time.sleep(3)
