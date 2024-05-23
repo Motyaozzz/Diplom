@@ -65,7 +65,7 @@ class App():
          self.__add_autostart_task()
 
          time.sleep(5)
-
+         
       if not self.__check_admin() and not self.__check_task():
          os._exit(1)
       
@@ -230,10 +230,10 @@ class App():
          for drive in self.drives:
             if row[0] == drive.serial_num:
                mem = drive.capacity
-         self.drive_tree.insert("", ctk.END, values=(counter, row[1], row[4], self.__human_size(mem) if mem is not None else "Not connected", row[0], "Да"))
+         self.drive_tree.insert("", ctk.END, values=(counter, row[1], row[2], self.__human_size(mem) if mem is not None else "Not connected", row[0], "Да"))
          counter+=1
       for drive in self.drives:
-         if not(db.check(drive.serial_num, "ser_num")):
+         if not(db.check(drive.serial_num, "ser_num", "main")):
             self.drive_tree.insert("", ctk.END, values=(
                counter, drive.name, drive.disk_type, self.__human_size(drive.capacity), drive.serial_num, "Нет"))
             counter+=1
@@ -285,7 +285,7 @@ class App():
          self.__show_warning("В базу нельзя добавить носитель без серийного номера")
          return
       else:
-         if db.check(str(self.selected[4]), "ser_num"):
+         if db.check(str(self.selected[4]), "ser_num", "main"):
             self.__show_warning("Данный носитель информации уже есть в базе")
             return
          else:
@@ -296,8 +296,7 @@ class App():
                   name = drive.name
                   ser_num = drive.serial_num
                   interface_type = drive.disk_type
-
-                  db.insert_data(ser_num, name, m.hexdigest(), interface_type)
+                  db.insert_data(ser_num, name, m.hexdigest(), str(interface_type))
                   self.__show_warning("Носитель добавлен в базу")
 
             if self.OS_TYPE == "Windows":
@@ -331,7 +330,7 @@ class App():
          self.__show_warning("Выберите носитель информации, который хотите удалить из БД")
          return
       else:
-         if db.check(self.selected[4], "ser_num"):
+         if db.check(self.selected[4], "ser_num", "main"):
             db.delete_data(self.selected[4])
             self.__show_warning("Носитель удален из базы")
             self.__update_drives()
@@ -345,7 +344,7 @@ class App():
       if self.selected is None:
          self.__show_warning("Выберите носитель информации, для которого необходимо создать QR-код")
       else:
-            if db.check(self.selected[4], "ser_num"):
+            if db.check(self.selected[4], "ser_num", "main"):
                qrcode_img = qrcode.make(self.selected[4])
                qrcode_name = f"{self.selected[1]}({self.selected[4]}).png"
                filename = ctk.filedialog.askdirectory()
@@ -366,7 +365,7 @@ class App():
          img = cv2.imread(qr_name)
          detect = cv2.QRCodeDetector()
          value, _, _ = detect.detectAndDecode(img)
-         if db.check(value, "ser_num"):
+         if db.check(value, "ser_num", "main"):
             ctkMBox.CTkMessagebox(title="QR-код", message="Носитель есть в базе")
          else:
             ctkMBox.CTkMessagebox(title="QR-код", message="Такого носителя нет в базе")

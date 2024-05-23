@@ -21,7 +21,7 @@ if os_type == "Windows":
          ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
 
    def create_task(program_path):
-      command = 'schtasks /create /tn "Device Controller" /tr "{}" /sc ONLOGON /RL HIGHEST /ru {}'.format(program_path, adm)
+      command = 'schtasks /create /tn "Device Controller" /tr "{}" /sc ONLOGON /RL HIGHEST /ru {} /F'.format(program_path, adm)
       command_start = 'schtasks /run /tn "Device Controller'
       subprocess.call(command, shell=True)
       subprocess.call(command_start, shell=True)
