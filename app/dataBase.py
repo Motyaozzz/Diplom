@@ -21,7 +21,6 @@ class Database:
                interface_type TEXT NOT NULL
          )
       ''')
-      # cursor.execute("REINDEX <table_name>") вот это пересчитывает
       self.conn.commit()
       cursor.close()
 

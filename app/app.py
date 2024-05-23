@@ -58,6 +58,7 @@ class App():
       self.tk = ctk.CTk()
       self.OS_TYPE = platform.system()
       self.window_info = None
+      
       if not self.__check_task():
          if not self.__check_admin():
             self.__show_wait_window(title="Внимание", message="Войдите под администратором, чтобы добавить задание")
@@ -148,7 +149,7 @@ class App():
       
       
    def __about(self):
-      ctkMBox.CTkMessagebox(title="О программе", message="Программа учета машинных носителей информации\n(c) Муханов М.Э., Россия, 2024г.")
+      ctkMBox.CTkMessagebox(title="О программе", message="Приложение для автоматизированного учета машинных носителей защищенной информации, их проверки и подготовки бирок для маркировки на предприятии\n(c) Муханов М.Э., Россия, 2024г.")
 
 
    def __load_drives(self):
@@ -270,9 +271,8 @@ class App():
          if value is None:
             return ""
          return str(value)
-
       if self.selected is None:
-         self.__show_warning("Выберете носитель информации, который хотите добавить в БД")
+         self.__show_warning("Выберите носитель информации, который хотите добавить в базу")
          return
       
       elif self.selected[4] == 'None':
@@ -280,7 +280,7 @@ class App():
          return
       else:
          if db.check(str(self.selected[4]), "ser_num"):
-            self.__show_warning("Данный носитель информации уже есть в таблице")
+            self.__show_warning("Данный носитель информации уже есть в базе")
             return
          else:
             for drive in self.drives:
@@ -322,7 +322,7 @@ class App():
                            
    def __delete_data(self):
       if self.selected is None:
-         self.__show_warning("Выберете носитель информации, который хотите удалить из БД")
+         self.__show_warning("Выберите носитель информации, который хотите удалить из БД")
          return
       else:
          if db.check(self.selected[4], "ser_num"):
@@ -337,7 +337,7 @@ class App():
          
    def __qrcode_make(self):
       if self.selected is None:
-         self.__show_warning("Выберете носитель информации, для которого необходимо создать QR-код")
+         self.__show_warning("Выберите носитель информации, для которого необходимо создать QR-код")
       else:
             if db.check(self.selected[4], "ser_num"):
                qrcode_img = qrcode.make(self.selected[4])
@@ -349,7 +349,7 @@ class App():
                qrcode_img.save(qrcode_path + qrcode_name)
                ctkMBox.CTkMessagebox(title="QR-код", message="QR-код создан и размещен по пути:\n" + qrcode_path)
             else:
-               self.__show_warning("Невозможно создать QR-код, т.к. данного носителя нет в базе")
+               self.__show_warning("Невозможно создать QR-код. Носителя нет в базе")
                return
       
    def __qrcode_check(self):
