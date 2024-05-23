@@ -1,3 +1,10 @@
+win_types = {
+   0: "USB",
+   3: "HDD",
+   4: "SSD",
+   5: "SCM"
+}
+
 class Drive():
 
    index: int = None
@@ -9,9 +16,13 @@ class Drive():
    capacity: int
    serial_num = None
 
+
    def __init__(self, name, path, disk_type, block_size, capacity, dev_id, index):
       self.name = name
-      self.disk_type = disk_type
+      if isinstance(disk_type, int):
+         self.disk_type = win_types[disk_type]
+      else:
+         self.disk_type = disk_type
       self.path = path
       if block_size is not None:
          self.block_size = block_size

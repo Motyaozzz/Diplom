@@ -159,10 +159,16 @@ class App():
          import wmi
          c = wmi.WMI()
          self.drives = []
+         
+         ws = wmi.WMI(namespace='root/Microsoft/Windows/Storage')
+         drives_mt = ws.MSFT_PhysicalDisk()
+
          if disks := c.Win32_DiskDrive():
             for disk in disks:
-               self.drives.append(Drive(disk.Model, disk.Name, disk.InterfaceType, disk.DefaultBlockSize, int(
-                  disk.Size), disk.SerialNumber, disk.Index))
+               for drive in drives_mt:
+                  if disk.Index == int(drive.DeviceId):
+                     self.drives.append(Drive(disk.Model, disk.Name, drive.MediaType, disk.DefaultBlockSize, int(
+                        disk.Size), disk.SerialNumber, disk.Index))
       elif self.OS_TYPE == "Linux":
          from diskinfo import DiskInfo
          di = DiskInfo()
