@@ -168,7 +168,7 @@ class App():
                for drive in drives_mt:
                   if disk.Index == int(drive.DeviceId):
                      self.drives.append(Drive(disk.Model, disk.Name, drive.MediaType, disk.DefaultBlockSize, int(
-                        disk.Size), disk.SerialNumber, disk.Index))
+                        disk.Size), disk.SerialNumber, disk.Index, disk.TotalSectors, disk.TotalCylinders))
       elif self.OS_TYPE == "Linux":
          from diskinfo import DiskInfo
          di = DiskInfo()
@@ -178,7 +178,7 @@ class App():
             if "zram" not in disk.get_path():
                self.drives.append(Drive(disk.get_model(), disk.get_path(), disk.get_type_str(
                ), disk.get_logical_block_size(), int(disk.get_size()*512), disk.get_serial_number(), disk.get_device_id()))
-               
+               # Добавить totalsectors и totalcylinders
 
    def __init_table(self):
 
@@ -233,7 +233,7 @@ class App():
          self.drive_tree.insert("", ctk.END, values=(counter, row[1], row[2], self.__human_size(mem) if mem is not None else "Not connected", row[0], "Да"))
          counter+=1
       for drive in self.drives:
-         if not(db.check(drive.serial_num, "ser_num", "main")):
+         if not(db.check(drive.serial_num, "ser_num")):
             self.drive_tree.insert("", ctk.END, values=(
                counter, drive.name, drive.disk_type, self.__human_size(drive.capacity), drive.serial_num, "Нет"))
             counter+=1
@@ -265,14 +265,12 @@ class App():
          item = self.drive_tree.item(selected_item)
          self.selected = [str(value) for value in item["values"]]
          
-         
    def __show_warning(self, text):
       ctkMBox.CTkMessagebox(title="Ошибка", message=text)
          
          
          
    def __insert_data(self):
-
       def extract_string(value):
          if value is None:
             return ""
@@ -281,17 +279,19 @@ class App():
          self.__show_warning("Выберите носитель информации, который хотите добавить в базу")
          return
       
-      elif self.selected[4] == 'None':
-         self.__show_warning("В базу нельзя добавить носитель без серийного номера")
+      elif self.selected[4] == 'None' or self.selected[1] == 'None' or self.selected[2] == 'None':
+         self.__show_warning("Устройство неисправно, некоторые параметры не считываются")
          return
+
       else:
-         if db.check(str(self.selected[4]), "ser_num", "main"):
+         if db.check(str(self.selected[4]), "ser_num"):
             self.__show_warning("Данный носитель информации уже есть в базе")
             return
          else:
             for drive in self.drives:
                if self.selected[4] == drive.serial_num:
-                  str_drive = "".join([extract_string(drive.serial_num), extract_string(drive.block_size), extract_string(drive.capacity), extract_string(drive.name)])
+                  str_drive = "".join([extract_string(drive.serial_num), extract_string(drive.block_size), extract_string(drive.capacity), extract_string(drive.name), extract_string(drive.total_sectors), extract_string(drive.total_cylinders)])
+                  print(str_drive)
                   m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
                   name = drive.name
                   ser_num = drive.serial_num
@@ -330,7 +330,7 @@ class App():
          self.__show_warning("Выберите носитель информации, который хотите удалить из БД")
          return
       else:
-         if db.check(self.selected[4], "ser_num", "main"):
+         if db.check(self.selected[4], "ser_num"):
             db.delete_data(self.selected[4])
             self.__show_warning("Носитель удален из базы")
             self.__update_drives()
@@ -344,7 +344,7 @@ class App():
       if self.selected is None:
          self.__show_warning("Выберите носитель информации, для которого необходимо создать QR-код")
       else:
-            if db.check(self.selected[4], "ser_num", "main"):
+            if db.check(self.selected[4], "ser_num"):
                qrcode_img = qrcode.make(self.selected[4])
                qrcode_name = f"{self.selected[1]}({self.selected[4]}).png"
                filename = ctk.filedialog.askdirectory()
@@ -365,7 +365,7 @@ class App():
          img = cv2.imread(qr_name)
          detect = cv2.QRCodeDetector()
          value, _, _ = detect.detectAndDecode(img)
-         if db.check(value, "ser_num", "main"):
+         if db.check(value, "ser_num"):
             ctkMBox.CTkMessagebox(title="QR-код", message="Носитель есть в базе")
          else:
             ctkMBox.CTkMessagebox(title="QR-код", message="Такого носителя нет в базе")

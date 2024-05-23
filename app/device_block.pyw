@@ -57,7 +57,7 @@ ENV{UDISKS_AUTO}="0" """
       for disk in disks:
          str_drive = "".join([extract_string(disk.get_serial_number()), extract_string(disk.get_logical_block_size()), extract_string(disk.get_size()*512), extract_string(disk.get_model())])
          m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
-         if not db.check(m.hexdigest(),"hash", "hash"):
+         if not db.check(m.hexdigest(),"hash"):
             unmount(disk)
          else:
             mount(disk)
@@ -75,12 +75,14 @@ elif OS_TYPE == "Windows":
          if disks := c.Win32_DiskDrive():
             block_size = 512
             for disk in disks:
-               str_drive = "".join([extract_string(disk.SerialNumber), extract_string(block_size), extract_string(disk.Size), extract_string(disk.Model)])
+               str_drive = "".join([extract_string(disk.SerialNumber), extract_string(block_size), extract_string(disk.Size), extract_string(disk.Model), extract_string(disk.TotalSectors), extract_string(disk.TotalCylinders)])
+               print("str_device block: "+ str_drive)
                m = GOST34112012(bytes(str_drive, "utf-8"), digest_size=256)
-               if not db.check(m.hexdigest(),"hash", "hash"):
+               print(m.hexdigest())
+               if not db.check(m.hexdigest(),"hash"):
                   for disk in ws.MSFT_Disk():
-                     if not db.check(disk.SerialNumber, "ser_num", "main"):
+                     if not db.check(disk.SerialNumber, "ser_num"):
                         for partition in disk.associators("MSFT_DiskToPartition"):
                            if partition.DriveLetter != 0:
                               partition.RemoveAccessPath(f"{chr(partition.DriveLetter)}:")
-         time.sleep(3)
+         time.sleep(2)

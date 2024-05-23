@@ -9,9 +9,10 @@ class Database:
       cursor = self.conn.cursor()
 
       cursor.execute('''
-      CREATE TABLE IF NOT EXISTS main (
+      CREATE TABLE IF NOT EXISTS device (
       device_id INTEGER PRIMARY KEY,
       ser_num TEXT UNIQUE NOT NULL,
+      hash TEXT UNIQUE NOT NULL,
       model_id INTEGER NOT NULL,
       interface_id INTEGER NOT NULL
       )
@@ -27,13 +28,6 @@ class Database:
       CREATE TABLE IF NOT EXISTS model (
       model_id INTEGER PRIMARY KEY,
       model TEXT UNIQUE NOT NULL 
-      )
-      ''')
-            
-      cursor.execute('''   
-      CREATE TABLE IF NOT EXISTS hash (
-      device_id INTEGER PRIMARY KEY,
-      hash TEXT UNIQUE NOT NULL
       )
       ''')
       
@@ -60,11 +54,7 @@ class Database:
       cursor.execute("SELECT interface_id FROM interface WHERE interface_type=?", (interface_type,))
       interface_id = cursor.fetchone()[0]
 
-      cursor.execute("INSERT INTO main (ser_num, model_id, interface_id) VALUES (?, ?, ?)", (str(ser_num), int(model_id), int(interface_id)))
-      cursor.execute("SELECT device_id FROM main WHERE ser_num=?", (ser_num,))
-      device_id = cursor.fetchone()[0]
-
-      cursor.execute("INSERT INTO hash (device_id, hash) VALUES (?, ?)", (int(device_id), gost_hash))
+      cursor.execute("INSERT INTO device (ser_num, hash, model_id, interface_id) VALUES (?, ?, ?, ?)", (str(ser_num), str(gost_hash), int(model_id), int(interface_id)))
          
       self.conn.commit()
       cursor.close()
@@ -78,28 +68,26 @@ class Database:
          cursor.execute(f'UPDATE {table} SET {column} = ? WHERE {column} = ?', (i, row[0]))
       
          if table == "model":
-            cursor.execute("UPDATE main SET model_id = ? WHERE model_id = ?", (i, row[0]))
+            cursor.execute("UPDATE device SET model_id = ? WHERE model_id = ?", (i, row[0]))
          if table == "interface":
-            cursor.execute("UPDATE main SET interface_id = ? WHERE interface_id = ?", (i, row[0]))
+            cursor.execute("UPDATE device SET interface_id = ? WHERE interface_id = ?", (i, row[0]))
       
    def delete_data(self, x):
       cursor = self.conn.cursor()
 
-      cursor.execute("SELECT device_id, interface_id, model_id FROM main WHERE ser_num = ?", (x,))
+      cursor.execute("SELECT device_id, interface_id, model_id FROM device WHERE ser_num = ?", (x,))
       deletion = cursor.fetchone()
 
       if deletion:
          device_id, interface_id, model_id = deletion
 
-         cursor.execute("DELETE FROM hash WHERE device_id=?", (int(device_id),))
-         self.__reindex("hash", "device_id")
-         cursor.execute("DELETE FROM main WHERE device_id=?", (int(device_id),))
-         self.__reindex("main", "device_id")
+         cursor.execute("DELETE FROM device WHERE device_id=?", (int(device_id),))
+         self.__reindex("device", "device_id")
 
-         cursor.execute("SELECT interface_id FROM main WHERE interface_id=?", (int(interface_id),))
+         cursor.execute("SELECT interface_id FROM device WHERE interface_id=?", (int(interface_id),))
          check_interface = cursor.fetchall()
 
-         cursor.execute("SELECT model_id FROM main WHERE model_id = ?", (int(model_id),))
+         cursor.execute("SELECT model_id FROM device WHERE model_id = ?", (int(model_id),))
          check_model = cursor.fetchall()
          
          if check_model is None or len(check_model) == 0:
@@ -113,9 +101,9 @@ class Database:
       self.conn.commit()
       cursor.close()
 
-   def check(self, x, y, z):
+   def check(self, x, y):
       cursor = self.conn.cursor()
-      info = cursor.execute('SELECT * FROM '+z+' WHERE '+y+' = ?', (x, )).fetchone()
+      info = cursor.execute('SELECT * FROM device WHERE '+y+' = ?', (x, )).fetchone()
       cursor.close()
       if info is None:
          return
@@ -127,13 +115,11 @@ class Database:
    def get_data_from_database(self):
       cursor = self.conn.cursor()
       
-      cursor.execute("SELECT main.ser_num, model.model, interface.interface_type, hash.hash FROM main \
-      JOIN model ON main.model_id = model.model_id \
-      JOIN interface ON main.interface_id = interface.interface_id \
-      JOIN hash ON main.device_id = hash.device_id")
-
+      cursor.execute("SELECT device.ser_num, model.model, interface.interface_type, device.hash FROM device \
+      JOIN model ON device.model_id = model.model_id \
+      JOIN interface ON device.interface_id = interface.interface_id")
       rows = cursor.fetchall()
-
+      
       cursor.close()
       return rows
    
