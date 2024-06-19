@@ -3,6 +3,7 @@
 ## Процесс запуска приложения:
   1. Установите python 3.10+ с официальной страницы [ссылка на python](https://www.python.org/downloads/release/python-31012/)
   2. Скачайте проект с GitHub.
+![image](https://github.com/Motyaozzz/Diplom/assets/89969066/4791c48d-fda7-424f-99a9-689422935229)
   3. В командной строке перейдите в папку со скачанным проектом и разверните виртуальное окружение venv:
       - `sudo apt install -y python3-venv `
       - `sudo apt install -y build-essential libssl-dev libffi-dev python3-dev`
