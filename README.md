@@ -15,7 +15,10 @@
           - `python -m venv venv`
           - `source venv/bin/activate`
   5. Установите необходимые библиотеки из req.txt
-      - `cat req.txt | xargs -n 1 pip install`
+      - Windows:
+          - `pip install -r .\req.txt`
+      - Linux:
+          - `cat req.txt | xargs -n 1 pip install`
   6. Отдельно установите библиотеку pygost, либо скачайте её из GitHub в папку с проктом на вашем ПК и начинайте с 3-й команды:
       - `wget http://www.pygost.cypherpunks.ru/pygost-5.13.tar.zst`
       - `zstd -d < pygost-5.13.tar.zst | tar xf -`
